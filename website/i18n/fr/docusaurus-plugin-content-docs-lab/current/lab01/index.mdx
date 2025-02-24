@@ -1,0 +1,270 @@
+---
+sidebar_position: 3
+---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+# Laboratoire 1 : USART. Débogage
+
+Comme dans tout travail d'ingénierie, des bogues peuvent et vont apparaître dans les systèmes embarqués. Dans des conditions de fonctionnement, il est crucial d’avoir un moyen de communication avec l’appareil embarqué. Afin d'avoir un aperçu des méthodes de débogage possibles, nous allons d'abord fournir une brève introduction, puis étudier en détail l'interface série USART, couramment utilisée pour la communication série entre deux dispositifs.
+
+## 1. Quelles sont les différences avec le débogage logiciel classique ?
+
+Le débogage des systèmes embarqués est plus complexe que celui des logiciels classiques en raison de plusieurs facteurs :
+
+* Les systèmes embarqués sont plus difficiles à déboguer car les outils de débogage matériels dédiés (logiciels, IDE, Lauterbach, etc.) sont beaucoup plus coûteux et plus complexes à utiliser que les outils de débogage standard.
+* L’utilisation d’un débogueur générique (par ex., Remote GDB) présente plusieurs problèmes. Les débogueurs génériques nécessitent une pile réseau ou des protocoles compatibles avec le matériel utilisé. Même si nous implémentons une telle pile, nous ne pouvons pas garantir qu'elle fonctionne parfaitement.
+* Même avec un débogueur spécialisé (comme une sonde Lauterbach), des configurations spécifiques sont souvent nécessaires pour fonctionner avec votre matériel (par ex., langage de script Practice pour Lauterbach T32).
+* Le débogage invasif peut affecter le comportement de votre code—considérez les systèmes d’exploitation en temps réel (RTOS), les systèmes multiprocesseurs (SMP) ou votre circuit (par ex., modification du circuit pour mesurer l’intensité du courant).
+* Le matériel en phase initiale peut contenir des erreurs de conception qui affectent le processus de débogage.
+* Même l'affichage de messages d'erreur peut poser problème, car parfois, il faut implémenter cette fonction soi-même, ce qui peut introduire de nouveaux bogues.
+
+Malgré ces défis, les principes de débogage restent les mêmes que pour les logiciels de haut niveau : il faut comparer le comportement attendu du système (code/circuit) avec ce que le système fait réellement.
+
+## 2. Outils nécessaires
+
+La visibilité au niveau matériel est obtenue par une forme d’entrée/sortie (si disponible) :
+
+* Débogage par LED - vérification des états vrai/faux.
+* **Messages via l'interface série / USART - débogage via USART, Bluetooth, etc.**
+* Débogueurs avancés pour afficher et modifier la mémoire/les registres (voir JTAG ci-dessous).
+* Tests en boucle (connecter les sorties aux entrées) pour obtenir des informations sur l’envoi de commandes vers des périphériques externes.
+
+Outils de mesure :
+
+* Multimètres (pour les valeurs statiques)
+  * **Résistance** : connectez simplement un composant du circuit entre les sondes.
+  * **Tension** : connectez en parallèle—sonde positive (rouge) au point de potentiel le plus élevé, sonde négative (noire) au point de potentiel le plus bas. Pour mesurer le potentiel en un seul point : connectez la sonde négative à la masse (GND) et la sonde positive au point désiré.
+  * **Courant** : connectez le multimètre en série avec le circuit à mesurer. Vous devez placer la sonde rouge sur le fil d'un composant et la sonde noire sur le conducteur suivant. Le multimètre agit comme un fil dans votre circuit. Si vous déconnectez le multimètre, le circuit ne fonctionnera pas.
+  * **Toujours commencer par régler l’échelle du multimètre au maximum, puis l’ajuster progressivement pour obtenir la mesure la plus précise.**
+  * **Vérification de la polarité d’une diode** : sélectionnez le mode test de diode. Si vous placez la sonde négative sur l’anode et la sonde positive sur la cathode, le multimètre émettra un bip ou affichera une chute de tension à travers la jonction p-n.
+  * **Vérification des courts-circuits/connectivité** : utilisez le mode buzzer si disponible en mode mesure de résistance—si l’appareil émet un son, cela signifie qu’il y a un court-circuit/connexion entre ces deux points.
+
+![](./images/1.jpg?400)
+
+* Oscilloscope
+* Analyseurs logiques (pour les signaux numériques)
+* Analyseurs de protocoles (pour les protocoles embarqués tels que I2C, SPI, etc.)
+* Débogueurs basés sur JTAG - peuvent offrir des fonctions très avancées : lecture/modification de la mémoire, interaction avec le noyau, arrêt de l’horloge du système, etc.
+
+![](./images/2.jpg?400)
+
+### Exemple de processus de débogage
+
+Un processus de débogage typique pourrait être le suivant :
+* **Vérifiez attentivement la fiche technique et le schéma**. Assurez-vous d'accéder aux bons registres. Un autre problème possible est un mauvais câblage entre les périphériques et les broches.
+* **Vérifiez d'abord si le débogage est possible en utilisant des messages de débogage et/ou des messages via l'interface série.**
+* **Si une pile Ethernet est disponible sur l’appareil**, envisagez d’utiliser SSH, NFS, etc., pour un débogage par messages.
+* **Si aucune pile réseau n’est disponible, vérifiez l’accès à des protocoles plus simples comme l’UART.** Testez en connectant un périphérique via UART, tel qu'un PC, un module Bluetooth, un écran LCD, etc.
+* **Dans les cas extrêmes ou pour des programmes très simples**, lorsque les options ci-dessus ne sont pas disponibles, le débogage par LED peut être utilisé.
+* **Isolez le problème à l’aide d’outils de mesure** : multimètres, oscilloscopes, analyseurs logiques.
+* **Si l’appareil prend en charge les débogueurs matériels (JTAG, Lauterbach, etc.), leur utilisation est souvent la méthode la plus efficace pour le débogage.**
+
+## 3. Interface série USART
+
+L’interface série est le moyen le plus simple de communiquer avec un microcontrôleur pour lire des données ou envoyer des commandes. Du point de vue du microcontrôleur, la communication série repose uniquement sur **deux lignes de données** :
+* Une **ligne de transmission**, marquée **Tx**.
+* Une **ligne de réception**, marquée **Rx**.
+
+La communication est en mode full-duplex, ce qui signifie que la transmission et la réception peuvent se produire simultanément.
+
+La transmission de données asynchrone s’effectue en **trames**, chaque trame étant constituée de plusieurs bits, selon le format illustré ci-dessous.
+
+![Transmission Série](./images/uart_ctranca.png)
+
+Un **bit de démarrage** est d'abord transmis, suivi d'un mot de données. Ensuite, un **bit de parité optionnel** peut être ajouté pour la détection d'erreurs de base, suivi d'**un ou deux bits d'arrêt**.
+
+Le microcontrôleur ATmega324P comprend deux périphériques **USART** (Universal Synchronous-Asynchronous Receiver/Transmitter) pour la communication série. Lors de l’initialisation de ce périphérique, les étapes suivantes doivent être effectuées :
+* Sélection de la vitesse de transmission des données - le baud rate (valeurs courantes : 9600, 19200, 38400, 57600, 115200).
+* Choix du format de trame (nombre de bits de données, bits d’arrêt et inclusion ou non d’un bit de parité).
+* Activation de la transmission et de la réception des données sur les lignes `RX` et `TX`.
+
+:::tip
+
+**Le baud rate** est le nombre de symboles/impulsions par seconde dans le signal. Il représente la vitesse de transmission, et il est crucial que l'émetteur et le récepteur utilisent le même baud rate pour assurer une transmission correcte des données.
+
+:::
+
+:::warning
+
+Pour que deux appareils, ici le PC et la carte du laboratoire, communiquent via USART en mode asynchrone, ils doivent être configurés **de manière identique**.
+
+:::
+
+### 3.1 Registres
+
+:::info
+
+Une description complète :
+* Des trois registres de contrôle.
+* Du registre du baud rate.
+* Des buffers de transmission/réception.
+
+Se trouve dans la [fiche technique de l’Atmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf), au <color red>Chapitre 21.12</color>.
+
+:::
+
+
+#### Registre de Données USART n (UDRn)
+
+![Registre UDR](./images/udr.png?nolink)
+
+`RXB` et `TXB` sont respectivement les buffers de réception et de transmission. Ils utilisent la *même adresse d’E/S*. Ainsi, `RXB` est accessible en lisant `UDRn`, et `TXB` en écrivant dans `UDRn`. Le buffer de transmission ne peut être écrit que lorsque le bit `UDRE` (*USART Data Register Empty*) dans le registre `UCSRnA` est à 1. Sinon, les écritures seront ignorées.
+
+#### Registre de Contrôle et d'État USART n A (UCSRnA)
+
+![Registre de Contrôle UCSRnA](./images/ucsra.png?nolink)
+
+`UCSRnA` est le registre d’état du contrôleur de communication. Les bits les plus importants sont :
+* **RXCn** – **Réception Complète** – devient 1 lorsqu’une donnée a été reçue mais n’a pas encore été lue. Il se réinitialise automatiquement lorsque le buffer de réception est vide.
+* **TXCn** – **Transmission Complète** – devient 1 lorsque le buffer de transmission est vide.
+* **UDREn** – **Registre de Données Vide** – devient 1 lorsque le buffer de transmission peut accepter de nouvelles données.
+
+#### Registre de Contrôle et d'État USART n B (UCSRnB)
+
+![Registre de Contrôle UCSRnB](./images/ucsrb.png?nolink)
+
+`UCSRnB` est un registre de contrôle. Les bits importants sont :
+* **RXCIEn** – **Interruption Réception Complète Activée** – lorsqu’il est mis à 1, le contrôleur de communication génère une interruption lorsque des données sont reçues.
+* **TXCIEn** – **Interruption Transmission Complète Activée** – lorsqu’il est mis à 1, le contrôleur génère une interruption lorsque le buffer de transmission est vide.
+* **UDRIEn** – **Interruption Registre de Données Vide Activée** – lorsqu’il est mis à 1, le contrôleur génère une interruption lorsque le buffer de transmission peut accepter plus de données.
+* **RXENn** – **Activation du Récepteur** – si 0, la réception des données est désactivée.
+* **TXENn** – **Activation du Transmetteur** – si 0, la transmission des données est désactivée.
+* **UCSZn2** – avec `UCSZ1` et `UCSZ0` dans le registre `UCSRC`, sélectionne la taille d’un mot de données.
+
+#### Registre de Contrôle et d'État USART n C (UCSRnC)
+
+![Registre de Contrôle UCSRnC](./images/ucsrc.png?nolink)
+
+`UCSRnC` est un autre registre de contrôle. Bits importants :
+* **UMSELn** – **Sélection du Mode** – 0 pour le mode asynchrone, 1 pour le mode synchrone.
+* **UPMn1, UPMn0** – **Mode de Parité** – Ces deux bits permettent quatre configurations possibles, comme indiqué dans le tableau ci-dessous :
+![Bits UPM](./images/upm.png?nolink)
+
+* **USBSn** – **Sélection du Bit d'Arrêt** – 0 pour un seul bit d'arrêt, 1 pour deux bits d'arrêt.
+![Bits USBS](./images/usbs.png?nolink)
+* **UCSZn1, UCSZn0** – avec `UCSZn2` dans le registre `UCSRnB`, sélectionne la taille du mot de données.
+![Bits UCSZ](./images/ucsz.png?nolink)
+
+#### Registres de Baud Rate USART (UBRRn)
+
+![Registre UBRRn](./images/ubrr.png?nolink)
+
+`UBRRn` est le registre qui définit le **baud rate** et comporte 12 bits. Les 4 premiers bits sont dans `UBRRnH`, tandis que les 8 restants sont dans `UBRRnL`. La valeur écrite dans `UBRRn` dépend de la fréquence d'horloge du processeur et du baud rate souhaité.
+
+Le tableau ci-dessous est utilisé pour des fréquences d'horloge de 8MHz, 11.0592MHz et 14.7456MHz. Notre carte fonctionne à 12MHz, donc nous pouvons trouver la valeur correspondante du baud rate [ici](https://cache.amobbs.com/bbs_upload782111/files_22/ourdev_508497.html) ou la calculer à l'aide de la formule :  
+**(F_CPU / (UART_BAUD_RATE * 16) - 1)**,  
+où F_CPU est la fréquence d'horloge du processeur et UART_BAUD_RATE est le baud rate choisi (ex. 4800, 9600, 14400).
+
+![Tableau des Baud Rates](./images/brate324.png?nolink)
+
+:::warning
+
+Il est recommandé de sélectionner un baud rate qui peut être dérivé exactement de la fréquence d'horloge. Sinon, une tolérance est définie (erreur maximale du baud rate) dans laquelle la communication reste acceptable. Si vous souhaitez approfondir ce sujet, consultez [cette ressource](https://www.allaboutcircuits.com/technical-articles/the-uart-baud-rate-clock-how-accurate-does-it-need-to-be/).
+
+:::
+
+:::warning
+
+Pour définir le baud rate, vous pouvez également utiliser la bibliothèque **util/setbaud.h**, conçue pour simplifier le processus. Il suffit de définir la fréquence d'horloge du processeur. Plus de détails et des exemples d'utilisation sont disponibles [ici](https://www.nongnu.org/avr-libc/user-manual/group__util__setbaud.html).
+
+:::
+
+### 3.2 Exemple d'Utilisation
+
+<CodeSnippet code={snippets._01_example_usart} language="c" />
+
+#### Écriture de Valeurs sur 16 Bits
+
+** `(3 << x)` **  
+Pour les bits de configuration toujours situés les uns à côté des autres, un masque avec plusieurs bits décalés de l’index le plus à droite est utilisé :  
+`(3 << UCSZ00)` remplace `(1 << UCSZ01) | (1 << UCSZ00)`
+
+** `(1 << x) | (1 << y)` **  
+La plupart du temps, nous allons créer des masques composites, en les appliquant simultanément à un registre d’E/S.  
+**Attention !** Vous ne pouvez composer des masques que pour la même opération. Vous ne pouvez pas appliquer un masque *OR* en même temps qu’un masque *AND*, car cela entraînerait des résultats incorrects.
+
+## 4. Exercices
+
+[Squelette du laboratoire](./lab1-usart.zip)
+
+### **Tâche 1**
+
+En utilisant le squelette du laboratoire fourni, configurez **USART0** avec les paramètres suivants :  
+- **Baud rate :** 28800  
+- **Bits de données :** 8  
+- **Bits d'arrêt :** 2  
+- **Parité :** Aucune  
+
+Transmettez le message **"Butonul 1 a fost apasat"** au PC lorsque **le bouton 1 (PB2)** est pressé.
+
+:::warning
+
+Les définitions dans **AVR Libc** nécessitant des calculs de fréquence d'horloge dépendent du paramètre `F_CPU`, fourni par le compilateur.  
+Puisque nous utilisons **PlatformIO**, n'oubliez pas de définir l'**horloge à 12MHz** dans `platformio.ini`  
+([voir la documentation officielle](https://docs.platformio.org/en/stable/platforms/atmelavr.html)) :  
+
+<CodeSnippet code={snippets._02_f_cpu} language="c" />
+
+:::
+
+
+
+:::info
+
+Pour spécifier le **baud rate** de la console série dans **VSCode avec PlatformIO**, utilisez la variable suivante dans `platformio.ini` :
+
+<CodeSnippet code={snippets._03_speed} language="c" />
+
+Pour voir les messages saisis dans le moniteur série :
+
+<CodeSnippet code={snippets._04_echo} language="c" />
+
+:::
+
+---
+
+### **Tâche 2**
+
+En utilisant le squelette du laboratoire, implémentez une nouvelle fonction :
+
+<CodeSnippet code={snippets._05_func} language="c" />
+
+Cette fonction doit accepter les commandes suivantes reçues via USART :
+
+- **"on"** – allumer la **LED RGB** en couleur **blanche**.
+- **"off"** – éteindre la **LED RGB**.
+- **"red"**, **"green"**, ou **"blue"** – configurer la LED dans la couleur spécifiée.
+
+#### **Configuration des broches de la LED RGB**
+- **Rouge** - PD5
+- **Vert** – PD7
+- **Bleu** – PB3
+
+---
+
+### **Tâche 3**
+
+Envoyez votre **nom** via l'interface série.  
+En utilisant l'**"alphabet_morse"** du squelette du laboratoire et le **buzzer**, générez la représentation en code Morse de votre nom.
+
+---
+
+### **Tâche Bonus : Feu de signalisation contrôlé par USART**
+
+Implémentez un **système de feu de signalisation** contrôlé via **USART** en utilisant la **LED RGB** de la **Tâche 1**.
+
+#### **Comportement**
+- La LED reste **rouge** par défaut.
+- Lorsqu’un message **"pedestrian"** est reçu via USART :
+  - La LED devient **jaune** pendant **2 secondes**.
+  - La LED devient **verte** pendant **5 secondes**.
+  - La LED revient à **rouge** jusqu'à la réception d'un nouveau message **"pedestrian"**.
+- Si un message **autre que "pedestrian"** est reçu, envoyez **"incorrect command"** via USART.
+- Pendant les transitions de couleur, les nouveaux messages USART doivent être **ignorés**.
+
+<CodeSnippet code={snippets._06_bonus} language="c" />

@@ -1,0 +1,54 @@
+export const _01_example_usart = `
+void USART0_init(unsigned int baud_rate)
+{
+  /* Set baud rate */
+  UBRR0H = (unsigned char)(baud_rate >> 8);
+  UBRR0L = (unsigned char)baud_rate;
+
+  /* Enable transmitter and receiver */
+  UCSR0B = (1 << TXEN0) | (1 << RXEN0);
+
+  /* Set frame format: 8 data bits, 2 stop bits, no parity */
+  UCSR0C = (1 << USBS0) | (3 << UCSZ00);
+}
+
+void USART0_transmit(unsigned char data) {
+    /* Wait until the buffer is empty */
+    while (!(UCSR0A & (1 << UDRE0)));
+
+    /* Load data into the buffer; transmission starts automatically */
+    UDR0 = data;
+}
+
+char USART0_receive()
+{
+  /* Wait while the buffer is empty */
+  while (!(UCSR0A & (1 << RXC0)));
+
+  /* Return data from buffer */
+  return UDR0;
+}
+`;
+
+export const _02_f_cpu = `
+board_build.f_cpu = 12000000L
+`;
+export const _03_speed = `
+monitor_speed = 28800
+`;
+
+export const _04_echo = `
+monitor_echo = true
+`;
+
+export const _05_func = `
+void USART_exec(unsigned char command);
+`;
+
+export const _06_bonus = `
+if (strcmp(received_command, "pedestrian") == 0) {
+    // Handle traffic light sequence
+} else {
+    USART0_transmit_string("incorrect command");
+}
+`;

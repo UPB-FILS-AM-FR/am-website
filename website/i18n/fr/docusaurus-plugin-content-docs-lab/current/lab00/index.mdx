@@ -1,0 +1,523 @@
+---
+sidebar_position: 2
+---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets00.mdx';
+
+
+
+# Laboratoire 0 : ATmega324. GPIO
+
+
+**Chapitres utiles de** **[ATmega324P Datasheet](https://ww1.microchip.com/downloads/fr/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)**
+
+- 1. Configuration des broches - page 15
+- 13. E/S-Ports - page 95
+
+## 1. Introduction
+
+### 1.1. Pourquoi ?
+
+**Q**: Que faisons-nous ici? Où est ce que nous apprenons utilisé? Est-ce vraiment utile?
+
+**A**: Pour répondre brièvement: "beaucoup", "partout" et "oui"; mais commençons par un exemple.
+
+Vous venez de construire un nouveau PC et d'installer un éclairage RVB sur la RAM, les ventilateurs et la coque. Maintenant vient la question: qui "appuie" sur les boutons pour que les couleurs apparaissent comme définies dans le logiciel? Le CPU devrait-il s'asseoir et gérer le changement des couleurs? Ce serait un gaspillage de ressources. C'est là qu'un microcontrôleur entre en jeu! C'est un processeur plus petit et plus simple avec une tâche bien définie au sein du système.
+
+### 1.2. Qu'est-ce qu'un microcontrôleur (µC) ?
+
+TLDR: Un ordinateur dans une puce. Plus précisément, il s'agit d'un circuit intégré qui comprend une unité de traitement (CPU), une mémoire (RAM volatile, EEPROM non volatile, Flash, ROM) et divers périphériques qui lui permettent de communiquer avec l'environnement externe.
+
+### 1.3. µC dans la nature
+
+Nous les trouvons dans divers appareils tels que les téléphones, les appareils ménagers, les satellites, les avions, les usines, etc. Il existe une large gamme de microcontrôleurs disponibles, sélectionnés en fonction de l'application, en tenant compte principalement de l'optimisation des coûts et de la consommation d'énergie pour l'appareil où le C sera utilisé.
+
+<details>
+    <summary>Example projects</summary>
+
+![projects](./images/projects.png)
+
+- [[1, 2] - Suivi des oiseaux](https://www.northstarst.com/)
+- [[3] - Palm size quad-copter] (http://www.rcgroups.com/forums/showthread.php?t1335765)
+- [4] - Robot suiveur de ligne (Tare N' Bar)
+- [5] - Robot de football (IronFoot)
+- [6] - Robot sous-marin (R0X1)
+- [[7] - Skateboard auto-équilibrant] (http://www.instructables.com/id/Easy-build-self-balancing-skateboardrobotsegway-/)
+
+Pour plus d'exemples, vous pouvez commencer à chercher ici : [https://www.hackster.io/projects/tags/microcontroller](https://www.hackster.io/projects/tags/microcontroller)
+</details>
+
+
+
+### 1.4. Qu’y a-t-il à l’intérieur d’un µC ?
+
+- **Central Processing Unit** (P core) avec des architectures de 8, 16, 32 ou 64 bits
+- Mémoire de données volatiles (**RAM**) et/ou mémoire non volatile (Flash ou EEPROM)
+- Mémoire de programme non volatile (**Flash** ou **EEPROM**)
+- Ports d'entrée-sortie numériques à usage général (**GPIO** - Sortie d'entrée à usage général)
+- Interfaces de communication série (**USART**, **SPI**, **I2C**, PCM, **USB**, SDIO, etc.)
+- Interfaces Ethernet
+- Interfaces pour affichages graphiques (LVDS, **HDMI**, ou autres protocoles de contrôle LCD dédiés)
+- Minuteurs (internes ou utilisés pour générer des signaux périodiques - par exemple, PWM - ou comme chien de garde)
+- Convertisseurs analogique-numérique et numérique-analogique (**ADC**, **DAC**), frontaux analogiques et autres circuits pour signaux analogiques
+- Source de tension intégrée
+- Interface de programmation et de débogage
+
+**Les périphériques** représentent tout périphérique interne ou externe qui se connecte à un système informatique et étend ses fonctionnalités de base. Dans le cas d'un microcontrôleur, plusieurs de ces périphériques sont intégrés directement dans la puce (exemples ci-dessus). Bien qu'ils ne ressemblent pas à des périphériques PC (moniteur, carte graphique, clavier, souris, etc.), sans eux, le microcontrôleur ne serait pas en mesure d'interagir avec le monde extérieur.
+
+## 2. Micropuce (Atmel) AVR
+
+Tout au long du semestre, nous travaillerons avec des microcontrôleurs de la famille AVR de Microchip. Ceux-ci ont une architecture Harvard 8 bits et un jeu d'instructions réduit (RISC).
+
+### 2.1. ATmega324P
+
+![ATmega324P](./images/atmel-atmega324p-20pu.jpg)
+
+Il s'agit d'un microcontrôleur 8 bits de la famille megaAVR, que nous utiliserons tout au long du semestre. Ses registres et son bus de données interne sont larges de 8 bits.
+
+<details>
+<summary> µC Spécifications </summary>
+
+- 32 KB Flash (détermine la taille maximale du programme)
+- 1 KB EEPROM
+- 2 Ko de RAM
+- Fréquence d'horloge maximale de 20 MHz
+- Tension d'alimentation entre 2,7V et 5,5V
+- 6 canaux PWM
+- 8 canaux ADC avec une résolution de 10 bits
+- 4 ports d'E/S numériques, chacun avec 8 broches, totalisant 32 broches d'E/S
+- 3 minuteurs (deux 8 bits et un 16 bits)
+- Interfaces de communication série: USART, SPI, TWI
+- Interface de programmation ISP et interface de débogage JTAG
+</details>
+
+Nous allons apprendre à configurer ses broches et à interagir avec l'environnement externe par le biais du code. Ce microcontrôleur a 40 broches (voir ci-dessous), dont 5 pour les fonctions d'alimentation ou auxiliaires, tandis que 32 sont pour les E/S. Il a quatre ports: A, B, C et D.
+
+![Configuration des broches ATmega324P](./images/atmega324pins.png?nolink&400 )
+
+:::note
+
+Pour plus de détails, vous pouvez toujours consulter la [fiche de données](https://www.microchip.com/downloads/fr/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf) (la documentation technique résumée) du microcontrôleur. :)
+
+:::
+
+### 2.2. La Carte de development du laboratoire
+
+[La carte du labo](https://github.com/dantudose/PM-Board) est basé sur le [contrôleur ATmega324P](https://www1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/ATmega164P-324P-644P-Data-Sheet-40002071A.pdf)
+
+* LSM9DS0 - Capteur inertiel à 9 axes (accéléromètre, gyroscope et magnétomètre)
+* MPL3115 - Capteur altimètre barométrique
+* Capteurs de température et de lumière ambiante
+* 128x160 ST7735 écran LCD couleur avec lecteur de carte SD
+* LED RVB
+* écran LCD 16x2 caractères
+* GPIO LED et boutons
+* Connecteurs JTAG et FAI
+* Interface USB programmable et interface de données
+
+![Carte labo](./images/placuta.png)
+
+La carte de laboratoire est un circuit qui donne facilement accès aux broches du µC et contient des circuits d'alimentation, de protection et éventuellement le programmateur µC.
+
+:::info
+
+Le programmeur est une puce spéciale, parfois même un autre microcontrôleur, responsable du chargement du code dans la mémoire du µC. Nous ne pouvons pas connecter directement le µC aux lignes USB d'un PC; nous avons besoin d'un intermédiaire pour "traduire" cette information.
+
+:::
+
+
+### 2.3. Pinout de la carte
+
+**LCD Displays**
+
+
+<TwoColumn 
+  left={`    
+    |  Character LCD  |  GPIO Pin  |
+    |  --- | --- |
+    | RS               |  PC0         |
+    | RW               |  PC1         |
+    | EN               |  PC2         |
+    | D4               |  PC3         |
+    | D5               |  PC4         |
+    | D6               |  PC5         |
+    | D7               |  PC6         |
+    | Backlight        |  PC7         |
+    `}
+  right={`
+|  Graphical LCD  |  GPIO Pin  |
+|  --- | --- |
+| CS               |  PB0        |
+| RST              |  PB1        |
+| A0               |  PB4        |
+| SDA              |  PB5        |
+| SCK              |  PB7        |
+| Backlight        |  PA7        |
+  `}
+/>
+
+
+<TwoColumn 
+  left={`
+    **I2C Sensors & Bus Addresses**
+
+|  I2C          |  GPIO Pin       | Chip     |  Address |
+|  --- | --- | --- | --- |
+| I2C Enable   | PA6          |  LSM9DS0   |  0x1D (XM) 0x6B (G) |
+| SCL          | PC0          | MPL3115A2  |  0x60                |
+| SDA          | PC1          |            |                      |
+  `}
+  right={`
+**SD Card**
+
+|     	 |  GPIO Pin	 |
+|  --- | --- |
+|  CS	 |  PA2	 |
+|  MOSI  |  PB5 	 |
+|  MISO  |  PB6 	 |
+|  SCK 	 |  PB7 	 |
+`}
+/>
+
+
+<TwoColumn 
+  left={`
+
+    **RGB LED**
+
+    ||  GPIO Pin	|
+    |  --- | --- |
+    |  Red	  |  PD5  |
+    |  Green  |  PD7  |
+    |  Blue	  |  PB3  |
+  `}
+  right={`
+
+    **Miscellaneous**
+
+|     	 |  GPIO Pin	|
+|  --- | --- |
+| Temperature Sensor  |  PA0  |
+| Ambient Light Sensor |  PA1  |
+| Buttons (BTN1 - 6)	|  PA5  |
+| BTN 1	                |  PB2  |
+| BTN 2	                |  PD6  |
+| Speaker	            |  PD4  |
+`}
+/>
+
+
+
+## 3. Mettons-nous au travail
+
+### 3.1. Actionneurs et transducteurs (capteurs)
+
+
+Pour s'interfacer avec l'environnement externe, divers composants électroniques sont utilisés, soit comme actionneurs (qui modifient l'état de l'environnement externe) soit comme transducteurs/capteurs (qui sont influencés par l'environnement externe et fournissent des informations au microcontrôleur sur différents paramètres).
+
+**Exemples d'actionneurs**:
+
+* Ventilateurs
+* Indicateurs sonores - buzzers
+* Indicateurs lumineux
+* Résistances chauffantes
+
+:::important
+
+Parfois, un élément d'activation est nécessaire pour alimenter un actionneur. Par exemple, si nous voulons démarrer un moteur, le C n'envoie qu'une commande de démarrage logique à un transistor, qui s'ouvre ensuite et permet à un courant plus important de passer (ici, "grand courant" est relatif par rapport aux quelques milliampères qu'un C peut produire).
+
+:::
+
+**Capteurs d'exemple**:
+
+* Boutons
+* Photorésistances - leur résistance électrique est influencée par la quantité de lumière
+* Thermistances - leur résistance électrique est influencée par la température
+
+:::important
+
+Selon le type de transducteur, le signal peut nécessiter un traitement avant d'être lu par le  µC (conditionnement du signal). Par exemple, une photorésistance doit être utilisée dans un diviseur de tension ou un circuit de source de courant, tandis qu'un bouton peut être connecté directement au microcontrôleur.
+
+:::
+
+
+
+#### 3.1.1 LED
+
+Les LED - diodes électroluminescentes - émettent de la lumière lorsqu'elles sont polarisées vers l'avant. Ne les confondez pas avec les ampoules traditionnelles, car elles fonctionnent de manière fondamentalement différente.
+
+
+Selon les semi-conducteurs utilisés dans leur construction et la lentille en plastique qui agit comme une lentille de dispersion et un filtre optique, les LED peuvent émettre de la lumière dans différentes couleurs. Ne confondez pas les LED avec les ampoules! Alors que les ampoules émettent de la lumière en chauffant un filament de tungstène à des températures élevées, les LED émettent de la lumière en passant du courant à travers un matériau semi-conducteur (jonction p-n).
+
+
+Les LED peuvent être utilisées comme indicateurs d'état (souvent utilisés dans divers appareils pour signaler qu'un appareil est allumé et exécute une fonction) ou pour l'éclairage, où des LED de haute puissance sont utilisées. En laboratoire, les LED sont utilisées pour indiquer l'état d'une broche.
+
+Calcul de la résistance limite de courant
+
+:::note
+
+Les LED sont des diodes, de sorte que le courant qui les traverse augmente de manière exponentielle avec la tension appliquée.
+
+:::
+
+Pour utiliser une LED comme indicateur d'état pour une broche (plus précisément, pour indiquer la présence de tension), le courant à travers la LED doit être limité. La façon la plus simple de le faire est de placer une résistance en série avec la LED.
+
+Une LED est conçue pour fonctionner à un courant nominal (par exemple, 10mA). La chute de tension à ce courant pour les LED indicatrices de faible puissance est déterminée par la chimie de la LED (qui détermine également sa couleur). En laboratoire, parce que nous utilisons des LED avec des exigences de courant si faibles, nous pouvons les alimenter directement à partir des broches logiques du C.
+
+Le circuit utilisé est le suivant:
+
+![ Circuit de travail et calcul de résistance de limitation de courant](./images/r_limit.png)
+
+**Solution**: Si le microcontrôleur fonctionne à 5V et que nous voulons utiliser une LED rouge à 10mA, avec une chute de tension de 1,7V comme spécifié par le fabricant, nous devons utiliser une résistance de 330 ohms.
+
+#### 3.1.2 Boutons
+
+La façon la plus simple pour un utilisateur d'interagir avec un microcontrôleur est d'utiliser des boutons. La façon correcte de connecter un bouton-poussoir dans ce laboratoire est montrée dans le diagramme ci-dessous:
+
+![ Connexion d'un bouton-poussoir: a) incorrect, avec entrée flottante, b) correct, avec résistance de traction](./images/conectare_buton.png)
+
+Raccordement d'un bouton-poussoir: a) incorrect, avec entrée flottante, b) correct, avec résistance de traction
+
+**a)** Affiche un bouton connecté à la broche PD0 du C. Lorsque le bouton est pressé, l'entrée PD0 sera connectée à GND, ce qui signifie qu'elle sera dans l'état logique "0". Cette méthode de connexion est incorrecte car lorsque le bouton n'est pas pressé, l'entrée est dans un état **non défini** (comme si on la laissait flottante), elle ne serait pas connectée à GND ou Vcc!
+
+**b)** Affiche la bonne façon de connecter le bouton, en utilisant une **résistance d'extraction** entre la broche d'entrée et Vcc. Cette résistance garantit que l'entrée reste dans l'état logique "1" lorsque le bouton n'est pas pressé en "tirant" le potentiel de la ligne à Vcc. Alternativement, une **résistance d'extraction** (connectée à GND) peut être utilisée, auquel cas l'entrée est conservée dans l'état logique "0".
+
+**En laboratoire**: Pour économiser de l'espace externe, dans l'ATmega328P C, ces résistances sont intégrées dans le circuit intégré. Initialement, elles sont désactivées et peuvent être activées via un logiciel.
+
+3.2. Utilisation des registres
+
+Cela peut être considéré comme l'étape la plus importante lors de l'utilisation d'un  µC. Nous devons apprendre à configurer le  µC en interne afin qu'il remplisse les fonctions que nous désirons. Dans ce laboratoire, nous allons configurer les broches pour fonctionner comme E / S: certaines broches liront s'il y a une tension (entrée), tandis que d'autres produiront 0 volts ou 5 volts en fonction de nos commandes logicielles.
+
+Pour clarifier la terminologie : quand nous disons **nous fixons un registre** ou écrivons dans un registre, nous ne faisons pas référence aux registres à usage général dans le processeur avec lequel vous avez peut-être travaillé dans IOCLA. **Nous faisons référence aux adresses mémoire** réservées dans le  µC. Répétons ensemble: "Par registre, nous entendons une adresse mémoire."
+
+Chaque fois que vous avez besoin de configurer un périphérique, la meilleure source pour trouver les paramètres exacts et leurs fonctions est toujours la [fiche d'information](http://www.microchip.com/downloads/fr/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf) de la  µC. Comme il n'est pas pratique d'écrire dans le code des adresses comme *(0x04)
+
+:::info
+
+Pour écrire une valeur dans un registre, vous pouvez attribuer une valeur directement. Cependant, cette méthode ne rend pas le code très facile à comprendre. *Notre recommandation* est d'utiliser des masques de bits ((1  x)) ou la macro _BV(x). Nous recommandons également d'utiliser le nom de broche au lieu de son index, car les noms sont indicatifs de leur fonction (par exemple, dans le registre ADCSRA du convertisseur bit analogique-numérique).
+
+:::
+
+-----
+
+| Operation | Syntax |
+|  --- | --- |
+| Set bit to 1 |<CodeSnippet code={snippets._01_set1} inline={true} />|
+| Set bit to 0 |<CodeSnippet code={snippets._02_set0} inline={true} />|
+| Toggle bit |<CodeSnippet code={snippets._03_toggle} inline={true} />|
+| Read bit |<CodeSnippet code={snippets._04_read} inline={true} />|
+
+Exemple : Utilisation des registres
+
+<CodeSnippet code={snippets._05_set_not_rec} language="c" />
+
+<CodeSnippet code={snippets._05_set_rec} language="c" />
+
+
+Pour plus de détails sur le travail avec les bits dans les registres, reportez-vous à la section tutoriel sur le [wiki](https://ocw.cs.pub.ro/courses/pm/tutorial/biti).
+
+
+Ne vous inquiétez pas, nous aurons de nombreuses sessions de laboratoire pour vous habituer à travailler avec des registres et à configurer le C. Nous vous encourageons à faire des efforts dès maintenant au début pour un voyage plus facile tout au long du semestre.
+
+### 3.3. Registres des E/S
+
+Pour ce laboratoire, nous vous avons épargné la recherche dans la fiche technique, qui peut sembler compliquée au premier abord, et avons résumé les adresses mémoire (registres) que vous devez modifier pour compléter ce laboratoire.
+
+Le microcontrôleur ATmega324 offre 4 ports d'E/S, chacun avec 8 broches. En interne, chaque port dispose de trois registres 8 bits qui permettent à l'utilisateur de contrôler *le flux de données au niveau de la broche*: vous pouvez écrire/lire des données depuis/vers le port respectif. Ces trois registres sont:
+* **`DDRn`** - *Registre des directions de données*
+  * Définit la direction des broches de port
+  * Si le bit *x* vaut **0**, la broche *x* vaut **entrée**
+  * Si le bit *x* vaut **1**, la broche *x* vaut **sortie**
+* **`PORTn`** - *Registre des données*
+  * Définit les valeurs de sortie des broches ou active/désactive les résistances de traction
+  * Si le bit *x* vaut **0** :
+  * Si la broche *x* est **output**, ce sera **LOW**
+  * Si la broche *x* est **entrée**, la résistance de traction sera **désactivée**
+  * Si le bit *x* est **1** :
+  * Si la broche *x* est **output**, ce sera **HIGH**
+  * Si la broche *x* est **entrée**, la résistance de traction sera **activée**
+* **`PINn`** - *Epingles d'entrée Adresse*
+  * Si la broche est **entrée**, nous pouvons lire les données du port respectif
+  * Si la broche *x* est **LOW**, alors le bit *x* sera **0**
+  * Si la broche *x* est **HIGH**, alors le bit *x* sera **1**
+  * Si la broche est **output**, nous pouvons la basculer automatiquement
+  * Si nous écrivons **1** au bit *x*, le bit correspondant dans **`PORTn`** sera automatiquement inversé (fonction **toggle**)
+
+*n* peut être A, B, C ou D, selon le port sélectionné. *x* peut être compris entre 0 et 7.
+
+Une description détaillée des ports et de leurs registres correspondants peut être trouvée dans la fiche technique ATmega324, dans le chapitre *Ports d'E/S*.
+
+#### 3.3.1 Exemple de traitement des sorties
+
+Supposons que nous ayons une LED connectée à la broche 1 du port B (appelée `PORTB1` ou `PB1`). Pour allumer ou éteindre la LED, procédez comme suit:
+* Configurer la broche `PB1` comme sortie :
+  * Le bit 1 (`PB1`) dans le registre `DDRB` doit être mis à 1
+  *  `DDRB |= (1 << PB1);`
+* Pour allumer la LED, réglez la broche `PB1` à **HIGH**:
+  * Le bit 1 (PB1) dans le registre `PORTB` doit être réglé sur 1
+  * `PORTB |= (1 << PB1);`
+* Pour désactiver la LED, réglez la broche `PB1` sur **LOW**:
+  * Le bit 1 (`PB1`) dans le registre `PORTB` doit être mis à 0
+  * `PORTB &= ~(1 << PB1);`
+
+#### 3.3.2. Exemple de traitement des entrées
+
+Supposons que nous ayons un bouton connecté à la broche 4 du port D (appelé `PORTD4` ou `PD4`), en utilisant la connexion correcte du cas **b)** montré précédemment. Pour déterminer l'état du bouton (appuyé ou libéré), procédez comme suit:
+* Configurer la broche `PD4` comme entrée :
+  * Le bit 4 (`PD4`) dans le registre DDRD doit être mis à 0
+  * `DDRD &= ~(1 << PD4);`
+* Pour déterminer si le bouton est pressé, lisez la valeur de la broche à laquelle il est attaché. Il sera 1 lorsque le bouton est relâché et 0 lorsque le bouton est pressé:
+  * Lire le bit 4 (`PD4`) dans le registre `PIND`:
+  * `char val = PIND & (1 << PD4);`
+
+
+
+
+## 4. Développer des programmes pour AVR
+
+
+<details>
+
+<summary>Développement et compilation sans PlatformIO </summary>
+
+### 4.1. Développement et compilation
+
+Pour le développement de programmes, nous pouvons utiliser n'importe quel éditeur de texte.
+
+Dans les laboratoires, nous écrirons le code C, pas l'assemblage (AVRASM), en utilisant le compilateur [avr-gcc](https://gcc.gnu.org/wiki/avr-gcc). WinAVR inclut la bibliothèque C, avr-libc, qui doit être installée sur les systèmes Linux et Windows ([WinAVR](http://winavr.sourceforge.net/).
+
+![Compilation Process with AVR-GCC](./images/procesul_de_compilare.jpg?nolink&700 )
+
+Bien que notre microcontrôleur soit 8 bits, en code C, nous pouvons utiliser des variables entières de 16/32/64 bits et même des nombres à virgule flottante. Le compilateur gère la traduction des instructions en code d'assemblage qui fonctionne sur une architecture 8 bits.
+
+
+Comme pour les systèmes Linux, pour programmer AVR, nous avons besoin de quelques utilitaires : le compilateur avr-gcc, avr-libc et AVRDUDE. Pour installer ces utilitaires, Homebrew est recommandé. Utilisez les commandes suivantes :
+
+<CodeSnippet code={snippets._06_mac_install} language="bash" />
+
+Pour fonctionner sur les processeurs M1/M2/M3, vous devez installer au moins la version 11 d'avr-gcc.
+Plus d'exemples peuvent être trouvés [ici](https://wellys.com/posts/avr_c_macos/).
+
+
+### 4.2. Programmation du microcontrôleur
+
+Un microcontrôleur peut être programmé en utilisant diverses méthodes, telles que la programmation d'interface série, un programmeur ISP (In-System Programming) en utilisant l'interface SPI, ou un bootloader.
+
+Dans ce laboratoire, nous utiliserons la dernière méthode car elle élimine le besoin de composants externes supplémentaires pour télécharger le fichier hexadécimal. Un **bootloader** est un programme préchargé (utilisant, par exemple, un programmeur FAI) à la fin de la mémoire du programme du microcontrôleur. L'exécution du code téléchargé commencera à partir de la section de démarrage. L'inconvénient de cette méthode est l'espace mémoire occupé par le bootloader.
+
+![Exécution de programmes à l'aide d'un bootloader](./images/avr_bootloader_model.jpg?nolink&300 )
+
+L'utilisation d'un bootloader nécessite de remplir une condition au démarrage du microcontrôleur. Sur les cartes de laboratoire, il s'exécute sur chaque RESET, mais nous pouvons définir n'importe quelle condition détectable par le processeur (par exemple, si un bouton est pressé ou non). Certains microcontrôleurs ont une ROM dédiée pour le bootloader, installée en usine (par exemple, STM32).
+
+Pour télécharger le programme sur le microcontrôleur, nous devons utiliser un utilitaire sur l'ordinateur. Ci-dessous un exemple d'utilisation de l'utilitaire **vrdude** sur Linux et Windows:
+
+<CodeSnippet code={snippets._07_upload_code} language="bash" />
+
+</details>
+
+
+### 4.3. PlatformIO
+
+Pour une solution **toolchain et IDE** tout-en-un, installez [PlatformIO](https://platformio.org/). Après avoir installé l'extension PlatformIO dans VSCode, créez un nouveau projet ciblant ATmega324P en tant que plate-forme/microcontrôleur et ajoutez la ligne suivante à **platformio.ini** :
+
+<CodeSnippet code={snippets._08_urclock} language="bash" />
+
+<details>
+<summary>Alternative à PlatformIO </summary>
+
+4.3.1 Alternative à PlatformIO : Installation séparée de la chaîne d'outils avr-gcc
+
+D'accord, vous êtes un développeur de logiciels hardcore et vous voulez installer la chaîne d'outils directement à l'aide de votre IDE préféré (qui est-ce que je plaisante, vous travaillez directement dans Vim). Vous avez cette option aussi, mais il vient avec quelques maux de tête. Si vous voulez installer juste la chaîne d'outils, sans un IDE, vous aurez besoin **avr-gcc**, **make** et **avrdude** pour compiler et programmer les guides de développement.
+* [Linux](https://baremetalmicro.com/tutorial_avr_toolchain/03-Install-on-Ubuntu-Linux.html)
+* [Windows](https://tinusaur.com/guides/avr-gcc-toolchain/)
+* [Mac](https://wellys.com/posts/avr_c_macos/)
+
+:::info
+
+Il est possible que l'installation par défaut d'avrdude ne prenne pas en charge le bootloader **urclock** sur la carte, et que vous receviez un message d'erreur lors de l'exécution de **make upload**. Pour résoudre ce problème, vous devez installer avrdude 7.2-arduino.1 (ou installer PlatformIO directement, qui est livré avec la version correcte d'avrdude).
+
+:::
+
+Nous vous recommandons également d'utiliser un IDE pour le développement de code. Si vous préférez VSCode (sans l'extension PlatformIO), consultez ce [tutorial](https://www.youtube.com/watch?vLE7-uzhlGVM&ab_channelWhiteHeart).
+
+:::warning
+
+**Avertissement**: Support du programmeur urclock (également connu sous le nom de urprotocol), utilisé par nos cartes, [a été seulement ajouté](https://github.com/avrdudes/avrdude/Windows/main/NEWS) dans avrdudeSystem > 7.1. Assurez-vous de ne pas installer une version récente (par exemple, **7.3**).
+
+:::
+
+</details>
+
+### 4.4. Bonjour tout le monde (Hello World)
+
+Nous écrirons un programme qui active et désactive une LED à des intervalles de 500 ms. La LED ciblée est la LED verte sur la carte du laboratoire. Ceci se fait en modifiant la tension d'une des broches du microcontrôleur, dans notre cas, la broche 7 du port D (`PD7`).
+
+<CodeSnippet code={snippets._09_hello} language="c" />
+
+Pour compiler avec PlatformIO, appuyez sur **Ctrl+Alt+B**, puis **Ctrl+Alt+U** pour télécharger.
+
+
+<details>
+<summary> Utilisation d'un Makefile personnalisé pour la compilation </summary>
+
+
+Si vous avez installé la chaîne d'outils séparément, vous devez utiliser le Makefile suivant :
+
+<CodeSnippet code={snippets._10_makefile} language="Makefile" />
+:::info
+
+
+Le compilateur utilisé est **avr-gcc**. Les drapeaux ont les significations suivantes :
+* -`mmcu` : Informe le compilateur du type de microcontrôleur pour lequel le code doit être généré.
+* -`DF_CPU12000000` : Définit la macro F_CPU, qui indique la fréquence d'horloge du microcontrôleur.
+* -`Os`: Optimise le programme pour l'utilisation de la mémoire (assez utile compte tenu de la mémoire limitée sur la puce).
+* -`Wall` : active tous les messages d'avertissement.
+
+Le fichier à programmer sur la carte doit être au format *ihex*. Par conséquent, il est nécessaire d'extraire les données et les sections de code du fichier ELF compilé et de les intégrer dans un fichier *ihex*. Cette étape est effectuée à l'aide de l'utilitaire **avr-objcopy**.
+
+La commande **avr-size** indique la quantité de mémoire occupée par les différentes sections du programme. Gardez à l'esprit que dans la mémoire SRAM pour les données, outre la section .data, la pile sera également placée. Pour exécuter le programme sur le microcontrôleur ATmega324, la section .text doit être inférieure à 32 Ko, et la section .data doit être inférieure à 2 Ko.
+
+:::
+
+</details>
+
+Le résultat de la compilation est le fichier **main.hex**. Ce fichier est ensuite téléchargé sur le microcontrôleur à l'aide de la règle **upload**.
+
+
+
+
+## 5. Exercices
+
+**Tâche 0** Commençons par vérifier la configuration.
+
+  * Installez votre IDE préféré / requis et exécutez l'exemple Hello World sur la carte de développement dans le laboratoire.
+
+**Tâche 1**
+  * Modifiez l'exemple Hello World pour que la LED allumée soit rouge au lieu de verte. Conseil : Trouvez la broche et le port auxquels cette LED (qui fait partie de la LED RGB) est connectée dans le [schéma de la carte](https://raw.githubusercontent.com/dantudose/PM-Board/main/Hardware/schematic.pdf) / [documentation du tableau sur GitHub](https://github.com/dose).
+
+:::info
+
+**Remarque**: La LED RVB a une anode commune, donc l'écriture d'un 1 logique sur la broche GPIO correspondante éteint la LED.
+
+:::
+
+**Tâche 2**
+  * Modifier l'exemple Bonjour le monde de sorte que la LED change de couleur lorsque le bouton 1 (`PB2`) est pressé.
+  * Gardez la LED verte allumée par défaut.
+  * Configurer les registres pour définir `PB2` comme entrée.
+  * Configurez la LED pour ajouter une autre couleur (rouge/bleu) lorsque vous appuyez sur le bouton. (N'oubliez pas d'activer la résistance de traction interne du  µC pour `PB2`).
+
+**Tâche 3**
+  * À partir de l'application créée dans la tâche 2, modifiez la fonctionnalité du bouton 1 pour parcourir les couleurs LED sur des pressions successives (première pression - rouge, deuxième pression - vert, troisième pression - bleu, etc.).
+  * Utilisez le bouton 2 pour basculer entre une LED clignotante (clignotement) et un état solide (une pression - clignotement, deuxième pression - toujours allumée, pression suivante - clignote à nouveau, etc.).
+
+## 6. Liens utiles
+
+* [AVR Freaks Community](http://www.avrfreaks.net/)
+* [Documentation AVR libc](http://www.nongnu.org/avr-libc/user-manual/modules.html)
+* [Compilateur AVR GCC](https://gcc.gnu.org/wiki/avr-gcc)
+* [Détails d'introduction sur la programmation AVR (Blog)](http://hackaday.com/2010/10/23/avr-programming-introduction/)
+* [Comment fonctionnent les LED](http://electronics.howstuffworks.com/led.htm)
+* [Schématique du Conseil de développement du PM](https://raw.githubusercontent.com/dantudose/PM-Board/main/Hardware/schematic.pdf)
+

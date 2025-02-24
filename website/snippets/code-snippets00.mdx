@@ -1,0 +1,117 @@
+export const greetCode = `
+macro \|= (1 << bit_index)
+`;
+
+export const farewellCode = `
+macro &= ~(1 << bit_index)
+`;
+
+export const _01_set1 = `
+macro \|= (1 << bit_index)
+`;
+
+export const _02_set0 = `
+macro &= ~(1 << bit_index)
+`;
+export const _03_toggle = `
+macro ^= (1 << bit_index)
+`;
+
+export const _04_read = `
+macro & (1 << bit_index)
+`;
+
+export const _05_set_not_rec = `
+DDRB = 8;               // NOT RECOMMENDED.
+DDRB = (1 << 3);        // Also not recommended, as it hardcodes the pin index.
+`;
+
+export const _05_set_rec = `
+DDRB |= (1 << PB3);     // RECOMMENDED.
+DDRB |= _BV(PB3);       // RECOMMENDED.
+`;
+
+export const _06_mac_install = `
+brew install avrdude
+xcode-select --install
+brew tap osx-cross/avr
+brew install avr-gcc
+`;
+
+export const _07_upload_code = `
+$ avrdude -c arduino -P /dev/ttyUSB0 -b 57600 -p atmega324p -U flash:w:lab0.hex:a
+
+C:/> avrdude -c arduino -P COM12 -b 57600 -p atmega324p -U flash:w:lab0.hex:a
+`;
+
+export const _08_urclock = `
+ upload_protocol = urclock
+`;
+
+export const _09_hello = `
+#include <avr/io.h>
+#include <util/delay.h>
+
+int main() {
+    /* Set pin 7 of port D as an output. */
+    DDRD |= (1 << PD7);
+
+    while(1) {
+        /* Toggle the state of the pin. */
+        PORTD ^= (1 << PD7);
+        _delay_ms(500);
+    }
+
+    return 0;
+}
+`;
+
+export const _10_makefile = `
+# Linux
+PORT ?= /dev/ttyUSB0
+# Windows
+#PORT ?= COM1
+
+all: main.hex
+
+main.hex: main.elf
+	avr-objcopy  -j .text -j .data -O ihex $^ $@
+	avr-size main.elf
+
+main.elf: main.c
+	avr-gcc -mmcu=atmega324p -DF_CPU=12000000 -Os -Wall -o $@ $^
+
+upload: main.hex
+	avrdude -c urclock -P $(PORT) -b 57600 -p atmega324p -D -xnometadata -U flash:w:$<:a
+
+clean:
+	rm -rf main.elf main.hex
+`;
+
+
+export const _table_lcd_01 = `
+<TwoColumn 
+  left={   
+  |  Character LCD  |  GPIO Pin  |
+    |  --- | --- |
+    | RS               |  PC0         |
+    | RW               |  PC1         |
+    | EN               |  PC2         |
+    | D4               |  PC3         |
+    | D5               |  PC4         |
+    | D6               |  PC5         |
+    | D7               |  PC6         |
+    | Backlight        |  PC7         |
+    }
+  right={
+|  Graphical LCD  |  GPIO Pin  |
+|  --- | --- |
+| CS               |  PB0        |
+| RST              |  PB1        |
+| A0               |  PB4        |
+| SDA              |  PB5        |
+| SCK              |  PB7        |
+| Backlight        |  PA7        |
+  }
+/>
+`;
