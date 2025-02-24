@@ -1,0 +1,22 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.labSidebar.category.Lab": {
+    "message": "Lab",
+    "description": "The label for category Lab in sidebar labSidebar"
+  },
+  "sidebar.labSidebar.category.lab": {
+    "message": "lab",
+    "description": "The label for category lab in sidebar labSidebar"
+  },
+  "sidebar.labSidebar.category.Lab 0": {
+    "message": "Lab 0",
+    "description": "The label for category Lab 0 in sidebar labSidebar"
+  },
+  "sidebar.labSidebar.category.snippets": {
+    "message": "snippets",
+    "description": "The label for category snippets in sidebar labSidebar"
+  }
+}
