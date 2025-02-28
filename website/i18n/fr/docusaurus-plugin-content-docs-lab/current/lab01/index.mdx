@@ -190,9 +190,15 @@ La plupart du temps, nous allons créer des masques composites, en les appliquan
 
 ## 4. Exercices
 
-[Squelette du laboratoire](./lab1-usart.zip)
 
-### **Tâche 1**
+<Tabs>
+  <TabItem value="lab_work" label="Travail labo">
+
+[Squelette du laboratoire](./lab1-usart.zip) ⬇️
+
+### Exercices au labo
+
+#### **Tâche 1**
 
 En utilisant le squelette du laboratoire fourni, configurez **USART0** avec les paramètres suivants :  
 - **Baud rate :** 28800  
@@ -200,7 +206,7 @@ En utilisant le squelette du laboratoire fourni, configurez **USART0** avec les 
 - **Bits d'arrêt :** 2  
 - **Parité :** Aucune  
 
-Transmettez le message **"Butonul 1 a fost apasat"** au PC lorsque **le bouton 1 (PB2)** est pressé.
+Transmettez le message **"Button 1 was pressed"** au PC lorsque **le bouton 1 (PB2)** est pressé.
 
 :::warning
 
@@ -228,7 +234,7 @@ Pour voir les messages saisis dans le moniteur série :
 
 ---
 
-### **Tâche 2**
+#### **Tâche 2**
 
 En utilisant le squelette du laboratoire, implémentez une nouvelle fonction :
 
@@ -240,25 +246,25 @@ Cette fonction doit accepter les commandes suivantes reçues via USART :
 - **"off"** – éteindre la **LED RGB**.
 - **"red"**, **"green"**, ou **"blue"** – configurer la LED dans la couleur spécifiée.
 
-#### **Configuration des broches de la LED RGB**
+##### **Configuration des broches de la LED RGB**
 - **Rouge** - PD5
 - **Vert** – PD7
 - **Bleu** – PB3
 
 ---
 
-### **Tâche 3**
+#### **Tâche 3**
 
 Envoyez votre **nom** via l'interface série.  
 En utilisant l'**"alphabet_morse"** du squelette du laboratoire et le **buzzer**, générez la représentation en code Morse de votre nom.
 
 ---
 
-### **Tâche Bonus : Feu de signalisation contrôlé par USART**
+#### **Tâche Bonus : Feu de signalisation contrôlé par USART**
 
 Implémentez un **système de feu de signalisation** contrôlé via **USART** en utilisant la **LED RGB** de la **Tâche 1**.
 
-#### **Comportement**
+##### **Comportement**
 - La LED reste **rouge** par défaut.
 - Lorsqu’un message **"pedestrian"** est reçu via USART :
   - La LED devient **jaune** pendant **2 secondes**.
@@ -268,3 +274,89 @@ Implémentez un **système de feu de signalisation** contrôlé via **USART** en
 - Pendant les transitions de couleur, les nouveaux messages USART doivent être **ignorés**.
 
 <CodeSnippet code={snippets._06_bonus} language="c" />
+
+</TabItem>
+
+<TabItem value="hw" label="Devoir">
+
+:::info
+
+### Exercices Devoir 
+
+
+Puisque le devoir utilise l'Arduino qui est basé sur le microcontrôleur **ATmega328**, assurez-vous de bien vérifier les légères différences dans le **pinout** de cette carte.
+
+![arduino_uno_pinout](./images/arduino-uno-pinout-diagram.png)
+
+
+
+
+#### Commencez par acceder [le projet](https://www.tinkercad.com/things/brDqtQ0NKQj-l01usarteng?sharecode=dmIU9ukFAp8Z2mQVJJS7a9LCn7fmGSHQqrL6IAFM4zs) ↗️ :
+
+- Cliquez sur le bouton bleu **"Sign up to copy"** (ou **"Copy and tinker"** si vous avez déjà un compte). Assurez-vous d'ajouter votre vrai nom à votre compte.
+- Dans le coin droit, trois boutons sont disponibles : **"Code"**, **"Simulate"** et **"Send to"**. Cliquez sur **"Code"** pour voir le code du squelette du laboratoire.
+- Commencez à écrire les exercices à la **ligne 156**. Prenez le temps de lire tout le code précédent du laboratoire afin de mieux comprendre les fonctions existantes.
+- Pour tester votre code, cliquez sur le bouton **"Simulate"**.
+- Pour ouvrir le moniteur série (où seront affichés les messages envoyés par USART et où vous pourrez envoyer des messages), cliquez sur le bouton **"Serial Monitor"** situé juste en dessous de la section du code.
+
+![tinkercad](./images/tinkercad_code.png)
+
+:::
+
+
+
+#### **Tâche 1**
+
+En utilisant le squelette du laboratoire fourni, configurez **USART0** avec les paramètres suivants :  
+- **Baud rate :** 28800  
+- **Bits de données :** 8  
+- **Bits d'arrêt :** 2  
+- **Parité :** Aucune  
+
+Transmettez le message **"Button 1 was pressed"** au PC lorsque **le bouton 1 (PB2)** est pressé.
+
+---
+
+#### **Tâche 2**
+
+En utilisant le squelette du laboratoire, implémentez une nouvelle fonction :
+
+<CodeSnippet code={snippets._05_func} language="c" />
+
+Cette fonction doit accepter les commandes suivantes reçues via USART :
+
+- **"on"** – allumer la **LED RGB** en couleur **blanche**.
+- **"off"** – éteindre la **LED RGB**.
+- **"red"**, **"green"**, ou **"blue"** – configurer la LED dans la couleur spécifiée.
+
+##### **Configuration des broches de la LED RGB**
+- **Rouge** - PD5
+- **Vert** – PD7
+- **Bleu** – PB3
+
+---
+
+#### **Tâche 3**
+
+Envoyez votre **nom** via l'interface série.  
+En utilisant l'**"alphabet_morse"** du squelette du laboratoire et le **buzzer**, générez la représentation en code Morse de votre nom.
+
+---
+
+#### **Tâche Bonus : Feu de signalisation contrôlé par USART**
+
+Implémentez un **système de feu de signalisation** contrôlé via **USART** en utilisant la **LED RGB** de la **Tâche 1**.
+
+##### **Comportement**
+- La LED reste **rouge** par défaut.
+- Lorsqu’un message **"pedestrian"** est reçu via USART :
+  - La LED devient **jaune** pendant **2 secondes**.
+  - La LED devient **verte** pendant **5 secondes**.
+  - La LED revient à **rouge** jusqu'à la réception d'un nouveau message **"pedestrian"**.
+- Si un message **autre que "pedestrian"** est reçu, envoyez **"incorrect command"** via USART.
+- Pendant les transitions de couleur, les nouveaux messages USART doivent être **ignorés**.
+
+<CodeSnippet code={snippets._06_bonus} language="c" />
+
+</TabItem>
+</Tabs>

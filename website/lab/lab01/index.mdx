@@ -210,10 +210,12 @@ Most of the time, we will create composite masks, applying them to an I/O regist
 
 <Tabs>
   <TabItem value="lab_work" label="Lab Work">
-  
-[Lab Skeleton](lab1-usart.zip)
 
-### **Task 1**
+### Lab exercises
+
+[Lab Skeleton](lab1-usart.zip) ⬇️
+
+#### **Task 1**
 
 Using the provided lab skeleton, configure **USART0** with the following parameters:  
 - **Baud rate:** 28800  
@@ -255,7 +257,7 @@ To see messages typed in the serial monitor:
 
 ---
 
-### **Task 2**
+#### **Task 2**
 
 Using the lab skeleton, implement a new function:
 
@@ -267,25 +269,25 @@ This function should accept the following commands received via USART:
 - **"off"** – turn off the **RGB LED**.
 - **"red"**, **"green"**, or **"blue"** – set the LED to the specified color.
 
-#### **RGB LED Pin Configuration**
+##### **RGB LED Pin Configuration**
 - **Red** - PD5
 - **Green** – PD7
 - **Blue** – PB3
 
 ---
 
-### **Task 3**
+#### **Task 3**
 
 Send your **name** via the serial interface.  
 Using the **"morse_alphabet"** from the lab skeleton and the **buzzer**, generate the Morse code representation of your name.
 
 ---
 
-### **Bonus Task: USART-Controlled Traffic Light**
+#### **Bonus Task: USART-Controlled Traffic Light**
 
 Implement a **traffic light** system controlled via **USART** using the **RGB LED** from **Task 1**.
 
-#### **Behavior**
+##### **Behavior**
 - The LED remains **red** by default.
 - When the **"pedestrian"** message is received via USART:
   - The LED turns **yellow** for **2 seconds**.
@@ -300,6 +302,84 @@ Implement a **traffic light** system controlled via **USART** using the **RGB LE
 </TabItem>
 
 <TabItem value="hw" label="Homework">
-    Homework Exercices on Tinkercad
+
+### Homework Exercises
+
+:::info
+
+    Homework Exercices on Tinkercad using [this project](https://www.tinkercad.com/things/brDqtQ0NKQj-l01usarteng?sharecode=dmIU9ukFAp8Z2mQVJJS7a9LCn7fmGSHQqrL6IAFM4zs)
+    Since Arduino is based on the ATmega328 microcontroller chip make sure to take a look at slight differences in the pinout for this board.
+    ![arduino_uno_pinout](./images/arduino-uno-pinout-diagram.png)
+
+
+    To start using [the project link](https://www.tinkercad.com/things/brDqtQ0NKQj-l01usarteng?sharecode=dmIU9ukFAp8Z2mQVJJS7a9LCn7fmGSHQqrL6IAFM4zs) ↗️ :
+    - click on the blue **"Sign up to copy"** (or **"Copy and tinker"** if you already have an account) button. Please make sure to add your real name to account.
+    - on the right corner there are three buttons **"Code"** , **"Simulate"** and **"Send to"**. Click on the **"Code"** button to see the lab skeleton code.
+    - Start writing the exercises at **line 156**. Make sure you go through all the previous code of the lab to better understand the functions.
+    - To test the code you wrote click the **"Simulate"** button.
+    - To open the serial monitor (where the messages from USART will be written, and where you will send messages), click on the **"Serial Monitor"** button right under the code section part.
+
+
+![tinkercad](./images/tinkercad_code.png)
+    
+:::
+
+#### **Task 1**
+
+Using the provided lab skeleton, configure **USART0** with the following parameters:  
+- **Baud rate:** 28800  
+- **Data bits:** 8  
+- **Stop bits:** 2  
+- **Parity:** None  
+
+Transmit the message **"Button 1 was pressed"** to the PC when **button 1 (PB2)** is pressed.
+
+
+
+---
+
+#### **Task 2**
+
+Using the lab skeleton, implement a new function:
+
+<CodeSnippet code={snippets._05_func} language="c" />
+
+This function should accept the following commands received via USART:
+
+- **"on"** – turn on the **RGB LED** in **white** color.
+- **"off"** – turn off the **RGB LED**.
+- **"red"**, **"green"**, or **"blue"** – set the LED to the specified color.
+
+##### **RGB LED Pin Configuration**
+- **Red** - PD5
+- **Green** – PD7
+- **Blue** – PB3
+
+---
+
+#### **Task 3**
+
+Send your **name** via the serial interface.  
+Using the **"morse_alphabet"** from the lab skeleton and the **buzzer**, generate the Morse code representation of your name.
+
+---
+
+#### **Bonus Task: USART-Controlled Traffic Light**
+
+Implement a **traffic light** system controlled via **USART** using the **RGB LED** from **Task 1**.
+
+##### **Behavior**
+- The LED remains **red** by default.
+- When the **"pedestrian"** message is received via USART:
+  - The LED turns **yellow** for **2 seconds**.
+  - The LED turns **green** for **5 seconds**.
+  - The LED returns to **red** until a new **"pedestrian"** message is received.
+- If a message **other than "pedestrian"** is received, send **"incorrect command"** via USART.
+- During color transitions, new USART messages should be **ignored**.
+
+<CodeSnippet code={snippets._06_bonus} language="c" />
+
+
+
   </TabItem>
 </Tabs>

@@ -96,7 +96,7 @@ const config: Config = {
       items: [
         {to: '/lab',label: 'Lab', position: 'left'},
         {to: '/project',label: 'Project', position: 'left'},
-        {to: '/tutorial',label: 'Tutorial', position: 'left'},
+        //{to: '/tutorial',label: 'Tutorial', position: 'left'},
         
         {
           type: 'localeDropdown',
