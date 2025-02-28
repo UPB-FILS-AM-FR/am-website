@@ -17,8 +17,9 @@ const config: Config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'UPB-FILS-AM', // Usually your GitHub org/user name.
-  projectName: 'upb-fils-am-fr.github.io', // Usually your repo name.
+  organizationName: 'UPB-FILS-AM-FR', // Usually your GitHub org/user name.
+  projectName: 'UPB-FILS-AM-FR.github.io', // Usually your repo name.
+  deploymentBranch: 'main',
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -96,7 +97,7 @@ const config: Config = {
       items: [
         {to: '/lab',label: 'Lab', position: 'left'},
         {to: '/project',label: 'Project', position: 'left'},
-        {to: '/tutorial',label: 'Tutorial', position: 'left'},
+        //{to: '/tutorial',label: 'Tutorial', position: 'left'},
         
         {
           type: 'localeDropdown',
@@ -123,7 +124,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Politehnica Bucharest.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Politehnica Bucharest. <br> This pages are the translated and adapted version from https://ocw.cs.pub.ro/courses/pm`,
     },
     prism: {
       theme: prismThemes.github,
