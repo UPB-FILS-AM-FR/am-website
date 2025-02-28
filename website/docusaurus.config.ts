@@ -123,7 +123,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Politehnica Bucharest.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Politehnica Bucharest. <br> This pages are the translated and adapted version from https://ocw.cs.pub.ro/courses/pm`,
     },
     prism: {
       theme: prismThemes.github,
