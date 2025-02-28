@@ -20,6 +20,7 @@ const config: Config = {
   organizationName: 'UPB-FILS-AM-FR', // Usually your GitHub org/user name.
   projectName: 'UPB-FILS-AM-FR.github.io', // Usually your repo name.
   deploymentBranch: 'main',
+  trailingSlash: false,
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
