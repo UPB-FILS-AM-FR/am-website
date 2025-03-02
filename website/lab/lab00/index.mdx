@@ -493,7 +493,12 @@ The result of the compilation is the **main.hex** file. This file is then upload
 **Task 1**
 * Modify the Hello World example so that the lit LED is red instead of green. Hint: Find the pin and port to which this LED (part of the RGB LED) is connected in the [board schematic](https://raw.githubusercontent.com/dantudose/PM-Board/main/Hardware/schematic.pdf) / [board documentation on GitHub](https://github.com/dantudose/PM-Board/tree/main?tab=readme-ov-file#board-pinout).
   
-   **Note**: The RGB LED has a common anode, so writing a logical 1 to the corresponding GPIO pin will turn off the LED.
+  :::note
+
+   The RGB LED has a common anode, so writing a logical 1 to the corresponding GPIO pin will turn off the LED.
+
+   :::
+
 **Task 2**
 * Modify the Hello World example so that the LED changes color when Button 1 (PB2) is pressed.
   * Keep the green LED on by default.

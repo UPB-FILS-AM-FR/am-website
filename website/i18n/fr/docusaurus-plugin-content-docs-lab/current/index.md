@@ -7,6 +7,8 @@ sidebar_position: 1
 
 ## Horaire
 
+[Repartition etudiants](https://docs.google.com/spreadsheets/d/1LT1U77E7dCzVLssV3KEsYylSqjGEDuacKAaE5_69UNI/edit?usp=sharing) 
+
 | Groupe | Horaire | Sale | Moodle Teams Alias |
 | ------ | ------- | ----- |------------------ | 
 | 1220FA (1) | Lundi 12-14 : impaire | ED218 | 12-FILS-L-CTI(F)-IIf-A2-S2-PM-F |

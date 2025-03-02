@@ -7,6 +7,8 @@ sidebar_position: 1
 
 ## Schedule
 
+[Student repartition](https://docs.google.com/spreadsheets/d/1LT1U77E7dCzVLssV3KEsYylSqjGEDuacKAaE5_69UNI/edit?usp=sharing) 
+
 | Groupe | Hours | Sale | Moodle Teams Alias |
 | ------ | ------- | ----- |------------------ | 
 | 1220FA (1) | Monday 12-14 : even | ED218 | 12-FILS-L-CTI(F)-IIf-A2-S2-PM-F |
