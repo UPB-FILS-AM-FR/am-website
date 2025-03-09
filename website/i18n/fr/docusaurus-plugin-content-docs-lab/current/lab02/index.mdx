@@ -1,0 +1,675 @@
+---
+sidebar_position: 4
+---
+
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+# Laboratoire 2 : Interruptions, Timers
+
+### **Chapitres utiles du** [Datasheet ATmega324](https://ocw.cs.pub.ro/courses/_media/pm/doc8272.pdf)
+* **1. Configuration des broches**
+  * Section 1.1 - Page 2
+* **7. Cœur du processeur AVR**
+  * Section 7.3 - Page 11
+  * Section 7.7 - Page 16
+* **12. Interruptions**
+  * Tableau 12-1 - Page 61
+* **13. Interruptions externes**
+  * Section 13.1 - Page 67
+  * Sections 13.2.4-13.2.9 - Page 69
+* **16. Minuteries/Compteurs 16 bits (Timer/Counter1 et Timer/Counter3) avec PWM**
+  * Sections 16.1-16.3 - Page 111
+  * Section 16.5 - Page 117
+  * Section 16.7 - Page 120
+  * Sections 16.9.1-16.9.2 - Page 123
+  * Section 16.11 - Page 132
+
+:::warning 
+Les chapitres référencés proviennent du [Datasheet ATmega324](https://ocw.cs.pub.ro/courses/_media/pm/doc8272.pdf), un document disponible sur **le bureau des ordinateurs du laboratoire**.  
+L'ordre des chapitres peut varier dans d'autres versions de la fiche technique !
+:::
+
+---
+
+## **Objectif**
+
+Ce laboratoire vise à vous familiariser avec les **interruptions matérielles** et les **timers** sur le microcontrôleur ATmega324.  
+Dans cette séance, nous utiliserons les timers **uniquement pour le comptage**, sans générer de signaux PWM.  
+La fonctionnalité PWM sera explorée dans le **prochain laboratoire**.
+
+---
+
+## **1. Interruptions**
+
+Une **interruption matérielle** est un signal synchrone ou asynchrone provenant d'un périphérique, indiquant qu'un événement doit être traité par le processeur.  
+Lorsqu'une interruption est déclenchée, elle **suspend l'exécution normale** du programme et déclenche l'exécution d'une **Routine de Service d'Interruption (ISR).**
+
+### **Pourquoi utiliser des interruptions ?**
+Les interruptions éliminent le besoin de **boucles d’interrogation (polling)** où le processeur vérifie constamment un événement sur un périphérique.  
+Grâce aux interruptions :
+- Les périphériques peuvent notifier le processeur **uniquement en cas de besoin**.
+- Le processeur est **libre** d’exécuter d’autres tâches **jusqu’à ce qu’un événement se produise**.
+- Le programme s'exécute de manière **plus efficace**.
+
+### **Gestion des interruptions**
+Avant d'exécuter une **ISR**, le processeur **sauvegarde son état actuel** :
+- **Compteur de programme (PC)**
+- **Registres d’état**
+- **Variables affectées par l’exécution de l’ISR**
+
+Ces informations sont stockées en **mémoire**, généralement sur une **pile (stack)**.  
+Une fois l’ISR terminée, l’état **précédent** est restauré et le **programme principal reprend** son exécution à l'endroit où il a été interrompu.
+
+---
+
+## **Table de Vecteurs d'Interruption (IVT)**
+
+Pour associer une interruption à une **fonction ISR spécifique**, le processeur utilise une **Table de Vecteurs d'Interruption (IVT)**, représentée dans le schéma ci-dessous.
+
+Chaque interruption est assignée à une **adresse mémoire fixe** où se trouve la **fonction ISR** correspondante.  
+Lorsqu'une interruption se produit, le processeur saute à l’**adresse ISR** correspondante dans l'IVT.
+
+**Priorité des interruptions :**  
+- **Adresses les plus basses → Priorité la plus élevée**
+- Les interruptions situées **au début de l'IVT** sont traitées **en premier**.
+
+---
+
+## **Table de Vecteurs d'Interruption pour l'ATmega324**
+
+| N° Vecteur | Adresse Programme | Source | Définition de l'Interruption |
+|------------|------------------|--------|------------------------------|
+| 1  | 0000  | RESET         | Réinitialisation externe, mise sous tension, Reset Brown-out, Reset Watchdog, et Reset JTAG AWR |
+| 2  | 0002  | INT0          | Demande d'interruption externe 0 |
+| 3  | 0004  | INT1          | Demande d'interruption externe 1 |
+| 4  | 0006  | INT2          | Demande d'interruption externe 2 |
+| 5  | 0008  | PCINT0        | Demande d'interruption par changement d’état 0 |
+| 6  | 000A  | PCINT1        | Demande d'interruption par changement d’état 1 |
+| 7  | 000C  | PCINT2        | Demande d'interruption par changement d’état 2 |
+| 8  | 000E  | PCINT3        | Demande d'interruption par changement d’état 3 |
+| 9  | 0010  | WDT           | Interruption de temporisation Watchdog |
+| 10 | 0012  | TIMER2_COMPA  | Comparaison A du Timer/Counter2 |
+| 11 | 0014  | TIMER2_COMPB  | Comparaison B du Timer/Counter2 |
+| 12 | 0016  | TIMER2_OVF    | Dépassement du Timer/Counter2 |
+| 13 | 0018  | TIMER1_CAPT   | Capture d’événement du Timer/Counter1 |
+| 14 | 001A  | TIMER1_COMPA  | Comparaison A du Timer/Counter1 |
+| 15 | 001C  | TIMER1_COMPB  | Comparaison B du Timer/Counter1 |
+| 16 | 001E  | TIMER1_OVF    | Dépassement du Timer/Counter1 |
+| 17 | 0020  | TIMER0_COMPA  | Comparaison A du Timer/Counter0 |
+| 18 | 0022  | TIMER0_COMPB  | Comparaison B du Timer/Counter0 |
+| 19 | 0024  | TIMER0_OVF    | Dépassement du Timer/Counter0 |
+| 20 | 0026  | SPI_STC       | Transfert série SPI terminé |
+| 21 | 0028  | USART0_RX     | Réception USART0 terminée |
+| 22 | 002A  | USART0_UDRE   | Registre de données USART0 vide |
+| 23 | 002C  | USART0_TX     | Transmission USART0 terminée |
+| 24 | 002E  | ANALOG_COMP   | Comparateur analogique |
+| 25 | 0030  | ADC           | Conversion ADC terminée |
+| 26 | 0032  | EE_READY      | EEPROM prête |
+| 27 | 0034  | TWI           | Interface série à deux fils (I2C) |
+| 28 | 0036  | SPM_READY     | Mémoire programme prête |
+| 29 | 0038  | USART1_RX     | Réception USART1 terminée |
+| 30 | 003A  | USART1_UDRE   | Registre de données USART1 vide |
+| 31 | 003C  | USART1_TX     | Transmission USART1 terminée |
+| 32 | 003E  | TIMER3_CAPT   | Capture d’événement du Timer/Counter3 |
+| 33 | 0040  | TIMER3_COMPA  | Comparaison A du Timer/Counter3 |
+| 34 | 0042  | TIMER3_COMPB  | Comparaison B du Timer/Counter3 |
+| 35 | 0044  | TIMER3_OVF    | Dépassement du Timer/Counter3 |
+
+---
+
+D'après le tableau ci-dessus, en plus des **interruptions des composants internes** (timers, interfaces série, convertisseurs analogique-numérique), il existe également des **interruptions des périphériques externes** :  
+✅ **INT0-INT2**  
+✅ **PCINT0-PCINT3**  
+
+La **différence** entre ces deux types d'interruptions externes réside dans leurs capacités et leur niveau de granularité.
+
+### **Interruptions INTn**
+- Les signaux des interruptions **INTn** proviennent de :
+  - **Port D** (broches 2, 3)
+  - **Port B** (broche 2)
+- Elles peuvent déclencher une interruption :
+  - Sur un **front montant** ou un **front descendant**
+  - Ou sur un **niveau bas (0)**, selon la configuration.
+
+### **Interruptions PCINTn**
+- Les interruptions **PCINTn** se déclenchent sur **les deux fronts** (d'où le nom **Pin Change INTerrupt**).
+- **8 broches sont multiplexées** sur une **seule interruption**.
+- Bien que les **signaux PCINT** puissent être activés individuellement, la broche exacte ayant déclenché l'interruption doit être déterminée en vérifiant le **registre PINn**.
+- **Les changements simultanés de plusieurs broches ne peuvent pas être distingués.**
+
+:::warning 
+Pour les **interruptions par changement d’état**, ne confondez pas le **vecteur d'interruption (ex. : PCINT0)** avec l'**interruption réelle (ex. : PCINT0 (PA0))**.  
+Le mapping entre les vecteurs et les interruptions se trouve dans la **Section 30, Page 555** du [datasheet](https://ocw.cs.pub.ro/courses/_media/pm/doc8272.pdf).
+:::
+
+## **Broches d'Interruption Externe sur l'ATmega324**
+
+![Broches d'Interruption Externe sur l'ATmega324](./images/irq_pins.png?500)
+
+:::tip
+Lorsqu'une interruption se produit, en plus de sauvegarder l'état, le processeur **désactive** les interruptions.  
+À la fin de la routine d'interruption, elles sont **réactivées**.  
+Les interruptions peuvent également être réactivées **manuellement à l'intérieur du gestionnaire** (ex. : si nous sommes dans un gestionnaire recevant une trame via une interface série et souhaitons activer une interruption de timer).
+:::
+
+---
+
+## **1.1. Utilisation des Interruptions**
+
+Pour activer une interruption, suivez ces étapes :
+
+### **1️⃣ Activer le mécanisme d'interruption globale**
+La gestion des interruptions doit être activée explicitement (bit **I - Global Interrupt Enable** dans le registre `SREG`).  
+Pour activer et désactiver ce bit, utilisez les fonctions suivantes :
+
+```c
+// Activer les interruptions
+sei();  
+
+// Désactiver les interruptions
+cli();
+```
+
+---
+
+### **2️⃣ Configurer le périphérique qui générera les interruptions**
+Par exemple, `INT0`, `INT1` et `INT2` sont configurés via le **registre EICRA**  
+(External Interrupt Control Register A, section **13.2.1, page 67** du [datasheet](https://ocw.cs.pub.ro/courses/_media/pm/doc8272.pdf)).
+
+Pour les **interruptions par changement d’état (PCINTn)**, utilisez le **registre PCICR**.
+
+### **Registre EICRA**
+![Registre EICRA](./images/eicra.png?700)
+
+### **Modes de Déclenchement des Interruptions**
+![Modes EICRA](./images/eicra2.png?700)
+
+#### **Exemples de Configuration**
+```c
+// Interruption externe : Configurer INT0 pour se déclencher sur tout changement logique
+EICRA |= (1 << ISC00);    
+
+// Interruption par changement d'état : Activer l’interruption sur changement d'état, configurer PCIE1 pour analyser PCMSK1
+PCICR |= (1 << PCIE1); 
+```
+
+:::tip
+Une **interruption externe** peut être configurée pour se déclencher sur :
+- **Un front montant**
+- **Un front descendant**
+- **Tout changement d’état**  
+
+📌 Voir **Table 13-1** dans le [datasheet](https://ocw.cs.pub.ro/courses/_media/pm/doc8272.pdf) pour plus de détails.  
+
+📌 Les **interruptions par changement d’état** se déclenchent sur **n'importe quel changement de niveau**, il faut donc **vérifier explicitement la valeur du signal dans le gestionnaire d’interruption**.
+:::
+
+---
+
+### **3️⃣ Implémenter la Routine de Service d'Interruption (ISR)**
+
+Les gestionnaires d'interruptions doivent être mappés à des **adresses mémoire fixes** dans la **table de vecteurs d’interruption**.  
+Utilisez la macro `ISR()` pour les définir, en passant le **type d'interruption** approprié.
+
+#### **Exemple : Gestion des interruptions INT0 et PCINT1**
+```c
+ISR(INT0_vect) {
+  // Code pour l'interruption externe
+}
+
+ISR(PCINT1_vect) {
+  // Code pour l'interruption par changement d’état
+
+  if ((PINB & (1 << PB1)) == 0) { 
+     // Interruption déclenchée par la broche PB1
+  }
+}
+```
+
+## **Activation des Interruptions et Test du Programme**
+
+Pour activer les interruptions externes, configurez le **registre de masque des interruptions externes (EIMSK)** :
+- Les bits **INT2:0** contrôlent l'activation des interruptions externes (**INT0-INT2**).
+
+Pour les **interruptions par changement d’état**, configurez le **registre correspondant** (par ex., `PCMSK1` pour les interruptions sur des broches spécifiques).
+
+```c
+// Activer l'interruption externe INT0
+EIMSK |= (1 << INT0);     
+
+// Activer l'interruption par changement d’état PCINT9 (PB1)
+PCMSK1 |= (1 << PCINT9); 
+
+// Activer les interruptions globales
+sei();
+```
+
+---
+
+<details>
+<summary>
+📌 **Registres supplémentaires pour la gestion des interruptions**
+</summary>
+
+Pour une **description complète** de ces registres, consultez le [datasheet](https://ocw.cs.pub.ro/courses/_media/pm/doc8272.pdf)  
+(*Interruptions*, *Interruptions Externes*).
+
+### **Registre d'État (SREG)**
+- Stocke les **indicateurs d'état** définis par l'ALU.
+- Contient le bit **I**, qui active/désactive les interruptions globales.
+- **N'est pas sauvegardé** lorsqu'une interruption se produit.
+- Décrit dans le chapitre *Cœur du processeur AVR*.
+
+📌 **Registre SREG**
+![Registre SREG](./images/sreg.png)
+
+---
+
+### **Registre de Contrôle MCU (MCUCR)**
+- Bit `IVSEL` : Définit **l'emplacement de la table des vecteurs d'interruption**  
+  (`0` = Début de la mémoire Flash, `1` = Section Boot Loader).
+- Bit `IVCE` : Permet d'écrire dans le bit `IVSEL`.
+
+📌 **Registre MCUCR**
+![Registre MCUCR](./images/mcucr.png?700)
+
+---
+
+### **Registre de Masque des Interruptions Externes (EIMSK)**
+- Les bits **INT2:0** contrôlent l'activation des interruptions externes.
+- Si `INT2:0` **ET** le bit `I` dans `SREG` sont à `1`,  
+  les interruptions externes sont **activées** sur la broche correspondante.
+
+</details>
+
+---
+
+## **1.2 Utilisation des Interruptions dans avr-gcc**
+
+La bibliothèque **avr-libc** fournit l'interface `<avr/interrupt.h>`  
+pour définir des **routines de service d'interruption (ISR)**.
+
+Chaque microcontrôleur possède une **table de vecteurs spécifique**,  
+déclarée dans le fichier **IO header correspondant**  
+(pour **ATMega324**, voir `iom324.h`).
+
+### **Vecteurs d'Interruption Courants**
+| Interruption | Vecteur | Description |
+|  --- | --- | --- |
+| TIMER1_COMPA | TIMER1_COMPA_vect | Comparaison sur Timer 1, Seuil A |
+| TIMER1_COMPB | TIMER1_COMPB_vect | Comparaison sur Timer 1, Seuil B |
+| TIMER1_OVF | TIMER1_OVF_vect | Dépassement du Timer 1 |
+| PCINT1 | PCINT1_vect | Interruption par changement d'état sur Port B |
+| ... | ... | ... |
+
+---
+
+### **Définition d'une ISR**
+Utilisez la macro `ISR()` pour créer un gestionnaire d'interruption :
+
+```c
+#include <avr/interrupt.h>
+
+ISR(INT0_vect) {
+    // Code de gestion de l'interruption
+}
+```
+
+---
+
+### **Règles de Gestion des Interruptions**
+✅ **Pas de valeur de retour** : Le processeur reprend l'exécution **là où il s'était arrêté**  
+✅ **Minimiser le temps d'exécution** : L'ISR **bloque** l'exécution du programme principal  
+✅ **Manipuler les variables partagées avec précaution** :
+- **Utiliser `volatile`** pour les variables partagées, afin d'éviter l'optimisation du compilateur.
+- **Faire attention aux conditions de concurrence** lors de la modification de **variables multi-octets (16/32 bits)**.
+
+---
+
+<details>
+<summary>
+📌 **Les interruptions peuvent être déclarées avec des options spécifiques**
+</summary>
+
+```c
+#include <avr/interrupt.h>
+
+ISR(vector, flag) {
+    // Code de gestion de l'interruption
+}
+```
+
+La macro `ISR()` :
+- Définit le gestionnaire pour un **périphérique spécifique**.
+- **Sauvegarde le registre `SREG`** avant l'exécution.
+- Appelle l'instruction **`reti`** à la fin.
+
+### **Options ISR**
+| Option | Description |
+| --- | --- |
+| **ISR_BLOCK** | **Comportement par défaut** : Les interruptions globales sont désactivées dans l'ISR. |
+| **ISR_NOBLOCK** | Permet les **interruptions imbriquées** (utile pour la gestion de priorités). |
+| **ISR_NAKED** | **Supprime le prologue/épilogue** (pas de sauvegarde `SREG`, pas d'appel `reti`). |
+| **ISR_ALIASOF** | Rend une ISR **alias** d'une autre ISR. |
+
+#### **Exemple : Alias d'Interruptions**
+```c
+#include <avr/interrupt.h>
+
+ISR(INT0_vect) {
+    // Gestionnaire d'interruption pour INT0
+}
+
+ISR(INT1_vect, ISR_ALIASOF(INT0_vect)) {
+    // INT1 utilise le même gestionnaire que INT0
+}
+```
+</details>
+
+---
+
+### **Fonctions Utilitaires Supplémentaires**
+| Fonction | Description |
+| --- | --- |
+| **`sei()`** | **Active** les interruptions globales (`I` bit dans `SREG` = 1). |
+| **`cli()`** | **Désactive** les interruptions globales (`I` bit dans `SREG` = 0). |
+| **`reti()`** | **Retourne depuis une ISR**, réactivant les interruptions. |
+
+---
+
+:::warning
+**⚠ Une interruption active sans ISR provoquera un Reset système !**  
+Si une interruption activée **n'a pas de gestionnaire**, le système sera **réinitialisé**.
+:::
+
+
+## **2. Minuterie (Timer)**
+
+### **2.1. Fonctionnement d'un Timer**
+
+Un **Timer/Compteur** mesure des intervalles de temps fixes et peut déclencher des **interruptions** lorsque l'intervalle mesuré expire.  
+Une fois initialisé, un timer fonctionne **indépendamment** du CPU, éliminant ainsi le besoin de boucles d’attente.
+
+### **Composants de Base d’un Timer sur l’ATmega324**
+1. **Registre Compteur (`TCNT`)** - Mesure les intervalles de temps et s’incrémente à une fréquence définie.
+2. **Prédiviseur (Prescaler)** - Divise la fréquence d’horloge en fonction des besoins de l’application.
+3. **Registre de Comparaison (`OCRn`)** - Stocke une valeur seuil. Si `TCNT` atteint cette valeur, une **interruption est générée**.
+
+📌 **Schéma Fonctionnel du Timer (ATmega324)**  
+![Schéma Fonctionnel du Timer](./images/timer_block.png?600)
+
+L’ATmega324 dispose de **trois timers** :
+- **Deux timers 8 bits** (Timer0 & Timer2)
+- **Un timer 16 bits** (Timer1)
+
+Les timers peuvent aussi fonctionner en **mode PWM** pour générer des **signaux de commande de tension variable**, qui seront étudiés lors du prochain laboratoire.
+
+---
+
+### **2.2. Modes de Fonctionnement du Timer**
+
+Les timers peuvent fonctionner en différents **modes**, chacun définissant :
+- La plage de comptage.
+- Le comportement du comptage (**incrémentation uniquement** ou **incrémentation/décrémentation**).
+- Quand le compteur se réinitialise.
+
+📌 **Modes utilisés dans ce laboratoire :**
+| Mode | Description | Comportement du Compteur | Propriétés |
+|  --- | --- | --- | --- |
+| **Normal** | *Démarre à 0*        *Compte jusqu’à `0xFFFF`* | ![Mode Normal](./images/timer_normal_v2.png?350) | *Fréquence fixe basée sur l’horloge & le prédiviseur* |
+| **CTC (Clear Timer on Compare)** | *Démarre à 0*        *Compte jusqu’à `OCRnA`*        *Se réinitialise à la valeur seuil* | ![Mode CTC](./images/timer_ctc_v2.png?350) | *Fréquence variable basée sur l’horloge, le prédiviseur & la valeur de comparaison* |
+
+**Termes Clés :**
+- **BOTTOM** : Valeur minimale de comptage (`0`).
+- **TOP** : Valeur maximale de comptage.
+- **MAX** : Valeur la plus haute possible (255 pour les timers 8 bits, 65535 pour les timers 16 bits).  
+  - **TOP = MAX** en **Mode Normal**.
+
+---
+
+### **2.3. Registres du Timer**
+
+| Timer | Registres | Description |
+|  --- | --- | --- |
+| **Timer0 (8 bits)** | `TCNT0` | Registre du compteur (valeur courante du compteur) |
+|  | `TCCR0A`, `TCCR0B` | Registres de contrôle (configuration du timer) |
+|  | `OCR0A`, `OCR0B` | Registres de comparaison (définition des seuils d’interruption) |
+|  | `TIMSK0`, `TIFR0` | Registres pour activer/désactiver les interruptions & indicateurs d’état |
+| **Timer1 (16 bits)** | `TCNT1H/L` | Registre compteur 16 bits |
+|  | `TCCR1A`, `TCCR1B`, `TCCR1C` | Registres de contrôle |
+|  | `OCR1AH/L`, `OCR1BH/L` | Registres de comparaison 16 bits |
+|  | `TIMSK1`, `TIFR1` | Registres d’interruption & indicateurs d’état |
+|  | `ICR1H/L` | Registre de Capture d’Entrée - stocke la valeur du compteur sur un événement externe |
+| **Timer2 (8 bits)** | *Même registres que Timer0* | Timer2 prend en charge une **horloge externe** via `TOSC1` & `TOSC2` |
+|  | `ASSR`, `GTCCR` | Registres pour le fonctionnement asynchrone |
+
+:::tip  
+**Les interruptions doivent être activées globalement (bit `I` dans `SREG` doit être activé).**  
+Utilisez `sei();` pour activer les interruptions globales.
+:::
+
+---
+
+## **2.4. Configuration du Timer**
+
+### **Définition du Mode du Timer**
+Pour configurer un mode de timer :
+1. Définissez les bits **`WGM`** dans le registre **TCCRnA** correspondant.
+2. Définissez le **seuil de comparaison**.
+
+**Exemple : Configurer Timer0 en mode CTC, comptant jusqu'à 5**
+```c
+TCCR0A |= (1 << WGM01); // Mode CTC activé
+OCR0A = 5;              // Définition du seuil de comparaison
+```
+
+---
+
+### **Configuration du Prédiviseur**
+Les valeurs du prédiviseur sont définies à l’aide des **bits CSx** dans `TCCRnB`.
+
+**Exemple : Définir le prédiviseur du Timer2 à 256**
+```c
+TCCR2B |= (1 << CS22) | (1 << CS21); // Prédiviseur de 256
+```
+
+---
+
+### **Activation des Interruptions du Timer**
+Pour déclencher une **interruption lors d’une comparaison**, activez le bit correspondant dans `TIMSKx`.
+
+**Exemple : Activer l’interruption de Comparaison A pour Timer1**
+```c
+#include <avr/interrupt.h>
+
+ISR(TIMER1_COMPA_vect) {
+  // Gestionnaire d'interruption pour la comparaison A du Timer1
+}
+
+void init_timer1() {
+  TIMSK1 |= (1 << OCIE1A); // Activer l’interruption Comparaison A du Timer1
+}
+
+int main() {
+  sei();         // Activer les interruptions globales
+  init_timer1(); // Initialiser Timer1
+  while (1) {
+    // Boucle principale
+  }
+}
+```
+
+---
+
+## **2.5. Gestion des Registres 16 bits**
+Certains registres (`TCNT1`, `OCR1A/B`, `ICR1`) sont **16 bits** mais accessibles **8 bits à la fois**.  
+- Écrire le **byte de poids fort en premier** garantit des mises à jour atomiques.
+
+**Exemple : Écriture dans `OCR1A` (registre 16 bits)**
+```c
+OCR1AH = (seuil >> 8); // Écrire le byte de poids fort d’abord
+OCR1AL = seuil;        // Puis écrire le byte de poids faible
+```
+
+:::tip  
+Cela est **automatiquement géré par le compilateur** en C lorsque les registres **sans suffixe `H` ou `L`** sont utilisés.
+:::
+
+---
+
+## **2.6. Calculateur de Timer**
+Pour configurer un timer :
+- Choisissez un **prédiviseur**.
+- Définissez une **limite de comptage**.
+- Calculez les valeurs en fonction de la **fréquence désirée** et de l’**horloge système**.
+
+**Formule pour la fréquence d’interruption (`f_int`)** :
+```
+f_int = f_clk / (prédiviseur * (tc + 1))
+```
+**Calcul de la valeur du Timer (`tc`)** :
+```
+tc = f_clk / (prédiviseur * f_int) - 1
+```
+
+📌 **Exemple : Générer une interruption à 1Hz (Horloge = 12MHz)**  
+| Prédiviseur | Limite de Compteur (`tc`) | Timer1 (16 bits) | Timer0,2 (8 bits) | Remarques |
+|  --- | --- | --- | --- | --- |
+| **1** | 11,999,999 | ❌ Impossible (Dépassement 16 bits) | ❌ Impossible (Dépassement 8 bits) | Dépassement |
+| **8** | 1,499,999 | ❌ Impossible | ❌ Impossible | Dépassement |
+| **64** | 187,499 | ❌ Impossible | ❌ Impossible | Dépassement |
+| **256** | 46,874 | ✅ Valide (Utiliser Timer1) | ❌ Impossible | **Requiert Timer1** |
+| **1024** | 11,717 | ❌ Impossible | ❌ Impossible | **Valeur non exacte** |
+
+:::tip  
+**Timer2 prend en charge des prédiviseurs de 32 et 128 (Voir ATmega324 Datasheet, Section 17.11.2, Page 160).**
+:::
+
+---
+
+## **Outils de Calcul en Ligne**
+Si vous avez besoin de **valeurs précises des registres**, utilisez ces outils :
+
+- **Calculateur de Timer/Compteur ATmega**  
+  [ATmega Timer Calculator](https://web.archive.org/web/20180312235028/https://et06.dunweber.com/atmega_timers/)
+
+  <iframe src="https://web.archive.org/web/20180312235028/https://et06.dunweber.com/atmega_timers/" width="100%" height="500px"></iframe>
+
+
+- **Calculateur d’Interruptions de Timer pour Arduino**  
+  [AVR Timer Calculator](https://www.arduinoslovakia.eu/application/timer-calculator)
+
+
+<Tabs>
+<TabItem value="lab_work" label="Travail en labo">
+
+
+### **Tâche 1.1 : Implémentation de `millis()`**
+- Implémentez une fonction similaire à `millis()` d'Arduino, qui retourne le temps écoulé depuis le démarrage ou le dernier reset du microcontrôleur (µC).
+- Configurez **USART0** avec les mêmes paramètres que dans le laboratoire précédent.
+- Envoyez un message choisi au PC **toutes les 1 seconde**.
+
+📌 **Astuces :**
+- La **fréquence d'horloge du µC est de 12MHz**.  
+- Utilisez les **formules de la section précédente** pour calculer le **prédiviseur** et la **valeur du registre de comparaison** pour le timer.
+- **Timer2** offre plus d’options de prédiviseurs, ce qui en fait un bon choix.
+
+---
+
+### **Tâche 1.2 : Anti-rebond des boutons**
+- Une **méthode de filtrage (debounce)** est nécessaire pour détecter correctement les **appuis courts sur un bouton**.
+- Comment peut-on utiliser **`millis()`** pour éliminer les fausses lectures ?
+- **Écrivez une fonction en pseudocode** illustrant votre solution.
+
+---
+
+### **Tâche 2 : Réimplémentation de l'Exercice 3 du Laboratoire 0 en utilisant les Timers et Interruptions**
+- **Utilisez des timers et interruptions** pour détecter les appuis sur les boutons et **contrôler le clignotement des LEDs**.
+
+📌 **Rappel (Lab 0, Exercice 3) :**
+- **BTN1 :** Change la couleur de la **LED RGB** (**Rouge → Vert → Bleu → Rouge**).
+- **BTN2 :** Active/Désactive le **clignotement de la LED**.
+
+---
+
+### **Tâche 3 : Contrôle d’un Buzzer avec des Boutons**
+- Utilisez les **boutons `PD6` et `PB2`** pour contrôler un buzzer.
+- **Un bouton sélectionne la fréquence** parmi trois valeurs (ex. **100Hz, 200Hz, 300Hz**).
+- **Le deuxième bouton doit être maintenu enfoncé** pour que le buzzer émette un son.
+- **Utilisez la LED RGB** pour indiquer la fréquence sélectionnée.
+
+---
+
+### **Tâche 4 (BONUS) : Correction d’Erreur du Timer**
+- La fonction **`millis()`** accumule une **erreur** au fil du temps en raison des imprécisions de division de la fréquence d’horloge.
+- **Calcul :**  
+  - Après combien de cycles du timer **l'erreur dépasse-t-elle 1ms** ?
+- **Proposez une méthode** pour réduire cette erreur.
+- **Implémentez la méthode de correction proposée**.
+
+---
+
+
+</TabItem>
+
+
+<TabItem value="homework" label="Devoirs">
+
+:::info
+
+**Utilisez ce** [**squelette de devoirs Tinkercad**](https://www.tinkercad.com/things/kcBoaJMamLq-l02timerinterrupts?sharecode=0OTaTcQsxhidmfeSklLvesX5KHotedJvZVVPS4pSP_s) ↗️ 
+
+:::
+
+### **Tâche 1.1 : Implémentation de `millis()`**
+- Implémentez une fonction similaire à `millis()` d'Arduino, qui retourne le temps écoulé depuis le démarrage ou le dernier reset du microcontrôleur (µC).
+- Configurez **USART0** avec les mêmes paramètres que dans le laboratoire précédent.
+- Envoyez un message choisi au PC **toutes les 1 seconde**.
+
+📌 **Astuces :**
+- La **fréquence d'horloge du µC est de 12MHz**.  
+- Utilisez les **formules de la section précédente** pour calculer le **prédiviseur** et la **valeur du registre de comparaison** pour le timer.
+- **Timer2** offre plus d’options de prédiviseurs, ce qui en fait un bon choix.
+
+---
+
+### **Tâche 1.2 : Anti-rebond des boutons**
+- Une **méthode de filtrage (debounce)** est nécessaire pour détecter correctement les **appuis courts sur un bouton**.
+- Comment peut-on utiliser **`millis()`** pour éliminer les fausses lectures ?
+- **Écrivez une fonction en pseudocode** illustrant votre solution.
+
+---
+
+### **Tâche 2 : Réimplémentation de l'Exercice 3 du Laboratoire 0 en utilisant les Timers et Interruptions**
+- **Utilisez des timers et interruptions** pour détecter les appuis sur les boutons et **contrôler le clignotement des LEDs**.
+
+📌 **Rappel (Lab 0, Exercice 3) :**
+- **BTN1 :** Change la couleur de la **LED RGB** (**Rouge → Vert → Bleu → Rouge**).
+- **BTN2 :** Active/Désactive le **clignotement de la LED**.
+
+---
+
+### **Tâche 3 : Contrôle d’un Buzzer avec des Boutons**
+- Utilisez les **boutons `PD6` et `PB2`** pour contrôler un buzzer.
+- **Un bouton sélectionne la fréquence** parmi trois valeurs (ex. **100Hz, 200Hz, 300Hz**).
+- **Le deuxième bouton doit être maintenu enfoncé** pour que le buzzer émette un son.
+- **Utilisez la LED RGB** pour indiquer la fréquence sélectionnée.
+
+---
+
+### **Tâche 4 (BONUS) : Correction d’Erreur du Timer**
+- La fonction **`millis()`** accumule une **erreur** au fil du temps en raison des imprécisions de division de la fréquence d’horloge.
+- **Calcul :**  
+  - Après combien de cycles du timer **l'erreur dépasse-t-elle 1ms** ?
+- **Proposez une méthode** pour réduire cette erreur.
+- **Implémentez la méthode de correction proposée**.
+
+---
+
+</TabItem>
+</Tabs>
