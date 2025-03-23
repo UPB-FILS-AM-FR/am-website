@@ -1,0 +1,261 @@
+---
+sidebar_position: 5
+---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+# TP 3 : Timers, Modulation de Largeur d'Impulsion (PWM)
+
+**Chapitres utiles du [Datasheet ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)**
+
+* 1. Configuration des broches – section 1.1, page 15  
+* 16. Timer/Compteur 8 bits 0 avec PWM – section 16.9, page 140  
+* 17. Timer/Compteur 16 bits 1 avec PWM – section 17.14, page 173  
+* 19. Timer/Compteur 8 bits 2 avec PWM et fonctionnement asynchrone – section 19.11, page 202  
+
+---
+
+## 1. Modulation de Largeur d'Impulsion (PWM)
+
+La **PWM** (Pulse Width Modulation) est une technique permettant de contrôler la tension appliquée à un dispositif électronique en le commutant rapidement entre les états **ON** et **OFF**.
+
+Ce basculement rapide génère une **tension moyenne** déterminée par le temps pendant lequel le signal reste à l'état ON par rapport au temps total du cycle — ce rapport s'appelle le **cycle de travail** (*duty cycle*).
+
+![Principe PWM](./images/main-qimg-72a9c6569290abe0a85dceabaf8c7ff9.gif?direct&400)
+
+La PWM permet un **contrôle numérique** de **signaux analogiques**, par exemple :
+- Variation de l'intensité d'une LED
+- Changement de couleur des LEDs RGB
+- Réglage de la fréquence d’un buzzer
+- Contrôle de la vitesse d’un moteur
+
+![Contrôle LED par PWM](./images/pwm_led.gif?direct&200)
+
+---
+
+### 1.1. Principe de fonctionnement
+
+Le cycle de travail s’exprime en pourcentage du temps ON par rapport au cycle total :
+
+$$
+D[\%] = \frac{t_{on}}{t_{on} + t_{off}} \cdot 100 = \frac{pulse\_width}{period} \cdot 100
+$$
+
+La **tension moyenne** reçue par un dispositif est :
+
+$$
+\bar{V} = D \cdot V_{cc}
+$$
+
+![Signaux PWM avec différents cycles de travail](./images/avr_pwm_01.jpg?700)
+
+Les signaux PWM sont généralement générés par des circuits numériques et des microcontrôleurs. L’ATmega324 utilise un **compteur** qui se réinitialise périodiquement et compare sa valeur avec une référence (`OCRn`). Lorsque le compteur dépasse la valeur de référence, la sortie PWM change d’état.
+
+<details>
+<summary>🛠️ PWM par logiciel ?</summary>
+
+La PWM peut également être implémentée en logiciel avec des méthodes comme :
+- Bit-banging
+- Timers avec routines d’interruption (ISR)
+
+Mais pour une PWM à **haute fréquence** (par exemple, dans les kHz pour les moteurs), la **PWM matérielle** est bien plus efficace, car elle évite la surcharge du CPU causée par des interruptions fréquentes.
+
+</details>
+
+---
+
+## 2. PWM sur les Microcontrôleurs AVR
+
+Dans le laboratoire précédent, nous avons vu que l’ATmega324 possède trois timers :
+- `Timer0` (8 bits)
+- `Timer1` (16 bits)
+- `Timer2` (8 bits)
+
+Chaque timer peut être configuré via les registres de contrôle `TCCRnA` et `TCCRnB`, en utilisant les bits `WGMnx` pour sélectionner le mode :
+
+- **Normal**
+- **CTC (Clear Timer on Compare Match)**
+- **Fast PWM** (utilisé aujourd’hui !)
+- **Phase Correct PWM**, etc.
+
+Chaque timer dispose de deux canaux de comparaison de sortie : `OCnA` et `OCnB`. Ceux-ci sont liés à des broches physiques spécifiques. Consultez le chapitre **Pin Configurations** de la fiche technique pour les correspondances exactes :
+
+![Broches de sortie PWM sur ATmega324P](./images/atmega324_pwm_pins.png?500)
+
+Aujourd’hui, nous nous concentrons sur le **mode Fast PWM**, un mode courant adapté à des applications générales comme la variation de luminosité de LED ou le contrôle de vitesse d’un moteur.
+
+---
+
+### Fast PWM
+
+En mode **Fast PWM**, le timer compte uniquement sur le **front montant** du signal d’horloge. Les changements de cycle de travail (duty cycle) prennent effet immédiatement, mais le signal n’est pas centré — un décalage ou un artefact peut apparaître lors de changements brusques du rapport cyclique.
+
+Plusieurs variantes du mode Fast PWM sont disponibles selon les timers. Pour **Timer1**, on trouve :
+
+- Fast PWM 8 bits : TOP = 0x00FF  
+- Fast PWM 9 bits : TOP = 0x01FF  
+- Fast PWM 10 bits : TOP = 0x03FF  
+- Fast PWM avec TOP dans `ICR`  
+- Fast PWM avec TOP dans `OCRnA`
+
+:::note 💡
+
+Dans ce TP, nous utiliserons uniquement le **mode Fast PWM 8 bits**. Reportez-vous à la fiche technique pour découvrir les autres modes spécifiques aux timers.
+
+:::
+
+---
+
+Supposons que le Timer1 soit configuré en **Fast PWM**. Ce mode possède une fréquence fixe et permet de modifier le cycle de travail pendant l’exécution.
+
+- Avec le mode `10` pour `COM1A1:COM1A0`, le signal sur la broche `OC1A` reste à l’état HAUT pendant la montée jusqu’au seuil, puis passe à l’état BAS jusqu’à la fin du cycle.
+- Pour obtenir un cycle de travail de `x%`, on définit :  
+  `OCR1A = x * TOP / 100`  
+  où `TOP` vaut 255 (8 bits), 511 (9 bits), ou 1023 (10 bits), selon la configuration.
+
+---
+
+#### Exemple : Timer1 en Fast PWM 8 bits, mode non-inversé avec prédiviseur de 1024
+
+Fréquence PWM ≈ 12 MHz / 1024 / 255 ≈ **45 Hz**
+
+```c
+/* OC1A est PD5, doit être configurée en sortie */
+DDRB |= (1 << PD5);
+
+/* Sélectionner le mode Fast PWM 8 bits : WGM[3:0] = 0b0101 */
+/* WGM10 et WGM11 -> TCCR1A ; WGM12 et WGM13 -> TCCR1B */
+TCCR1A = (1 << WGM10);
+TCCR1B = (1 << WGM12);
+
+/* Mode non-inversé sur OC1A : COM1A[1:0] = 0b10 */
+TCCR1A |= (1 << COM1A1);
+
+/* Définir le prédiviseur à 1024 : CS1[2:0] = 0b101 */
+TCCR1B |= (1 << CS12) | (1 << CS10);
+
+/* Définir un cycle de travail à 50% (TOP = 255, donc OCR1A = 127) */
+OCR1A = 127;
+```
+
+---
+
+### Phase Correct PWM
+
+Bien que nous n'utilisions pas ce mode dans le TP, il est utile de comprendre comment **Phase Correct PWM** diffère du Fast PWM — il offre une meilleure précision, souvent requise pour les **moteurs BLDC ou l’audio**.
+
+**Différence clé** : le compteur compte de BOTTOM jusqu’à TOP, puis redescend jusqu’à BOTTOM.
+
+- La sortie est définie par comparaison avec `OCRnx`, comme en Fast PWM.
+- Cependant, `OCRnx` reste constant pendant tout le cycle, ce qui donne une durée ON plus stable et un signal **plus propre**.
+- Cela évite les variations de fréquence (jitter) — crucial pour les moteurs, qui peuvent perdre en efficacité avec une PWM irrégulière.
+
+![Chronogramme Phase Correct PWM](./images/phase_correct_pwm.png?500)
+
+---
+
+### Comparaison : Fast PWM vs Phase Correct PWM
+
+![Fast PWM (gauche) vs Phase Correct PWM (droite)](./images/merged_pwm_waveforms.png?600)
+
+
+
+## 3. Exercices
+
+L’objectif de ces exercices est de contrôler la couleur d’une LED RGB à l’aide de la PWM. En ajustant indépendamment la luminosité de chaque diode (Rouge, Vert, Bleu), vous pouvez générer **n’importe quelle couleur** !
+
+Les broches de la LED RGB sont connectées comme suit :
+- **Rouge** : broche `PD5`, fonction `OC1A` (liée au Timer1)
+- **Vert** : broche `PD7`, fonction `OC2A` (liée au Timer2)
+- **Bleu** : broche `PB3`, fonction `OC0A` (liée au Timer0)
+
+:::info Rappel
+
+La LED RGB est câblée avec une **anode commune** / configuration "active-bas" — la LED s’allume lorsque la broche est à l’état BAS (LOW), et s’éteint lorsqu’elle est à l’état HAUT (HIGH).
+
+:::
+
+---
+
+### Tâche 0
+
+1. Téléchargez et exécutez le [projet de départ (ZIP)](https://ocw.cs.pub.ro/courses/_media/pm/lab/lab3-2023-2024/lab3-skel-2023-2024.zip).
+   - Que remarquez-vous sur la carte ?
+   - Consultez le moniteur série — vous souvenez-vous comment la temporisation était gérée dans le TP précédent ?
+   - Comment se comporte la LED ? Quel timer est utilisé et dans quel mode ?
+   - Où l’intensité est-elle mise à jour ? Quelle est l’entrée de la formule, et où est appliquée la sortie ?
+
+---
+
+### Tâche 1
+
+1. Faisons en sorte que la LED **bleue** se comporte de la même manière.
+   - Utilisez le Timer0 (`OC0A` sur `PB3`) en **mode Fast PWM**.
+   - Consultez la **Section 12.9** du [Datasheet ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf) pour une bonne utilisation des registres — les registres du Timer0 sont différents de ceux du Timer1 !
+   - Faites pulser la LED bleue **plus rapidement** que la rouge, et en **parallèle**.
+   - Que remarquez-vous ?
+
+---
+
+### Tâche 2
+
+1. C’est au tour de la LED **verte** !
+   - Problème : `PD7` (OC2A) est utilisé par le Timer2, déjà utilisé pour les ticks système de `millis()`...
+   - Solution : nous allons générer la PWM manuellement en utilisant les **interruptions** :
+     - Le Timer2 compte de 0 à 188 et déclenche une interruption via `COMPA` (pour incrémenter `systicks`).
+     - Le deuxième comparateur `COMPB` du Timer2 déclenche une interruption à une valeur entre 0–188.
+     - Dans l’ISR de `COMPA` : allumer la LED verte → mettre le GPIO à LOW.
+     - Dans l’ISR de `COMPB` : éteindre la LED verte → mettre le GPIO à HIGH.
+     - Le cycle de travail est défini par `OCR2B`.
+
+:::warning
+Gardez `OCR2A = 188` pour conserver le bon fonctionnement de `millis()`.
+:::
+
+---
+
+### Tâche 3
+
+1. Parcourez toutes les couleurs à l’aide de l’espace colorimétrique **HSV** :
+   - Convertissez HSV → RGB en utilisant la fonction `convert_HSV_to_RGB()` fournie.
+   - Faites varier la **Teinte (Hue)** dans le temps, gardez **Saturation = 1**, **Valeur = 1** (luminosité maximale).
+   - Utilisez les ticks système pour animer la couleur de manière fluide, comme pour la pulsation des LEDs.
+   - Assurez-vous de désactiver tout code en conflit qui modifierait l’intensité des LEDs.
+
+![Roue des Couleurs HSV](./images/hue-wheel.png?direct&400)
+
+---
+
+### Tâche 4 (Bonus)
+
+1. Utilisez le **haut-parleur** connecté à `PD4` (également `OC1B`) pour **jouer une mélodie** depuis le module `sound.c`.
+   - `surprise_notes[]` contient les fréquences.
+   - `durations[]` contient les durées des notes.
+   - Dans `update_notes()`, reconfigurez le Timer1 à chaque nouvelle note :
+     - Utilisez le **mode CTC** (`OCR1A` définit la valeur TOP → contrôle la fréquence).
+     - Réglez `OCR1B = OCR1A / 2` pour un cycle de travail de 50% (onde carrée).
+     - Appelez `update_notes()` toutes les **25 ms** via `systicks`.
+     - Remettez `TCNT1 = 0` après chaque modification de `OCR1A` pour éviter les décalages temporels.
+
+---
+
+### Bonus 2
+
+Combinez :
+- L’animation RGB (cycle HSV) **et** (and)
+- La lecture de la mélodie (via le haut-parleur)
+
+— les deux fonctionnant **simultanément** et de manière fluide.
+
+---
+
+## 4. Liens Utiles
+
+- [1] [Tutoriel Vidéo sur la PWM](http://www.afrotechmods.com/groovy/PWM_tutorial/PWM_tutorial.htm)
+- [2] [Guide PWM sur AVR Freaks](http://www.avrfreaks.net/index.php?name=PNphpBB2&file=printview&t=68302)
+- [3] [Secrets de la PWM sur Arduino](https://docs.arduino.cc/tutorials/generic/secrets-of-arduino-pwm)
+- [4] [Datasheet ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)

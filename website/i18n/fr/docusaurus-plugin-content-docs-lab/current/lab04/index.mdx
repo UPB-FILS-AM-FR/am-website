@@ -1,0 +1,266 @@
+---
+sidebar_position: 6
+---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+# TP 4 : Convertisseur Analogique-Numérique (ADC)
+
+Ce TP a pour but de vous familiariser avec le convertisseur analogique-numérique intégré au microcontrôleur ATmega324P.
+
+## 1. Mesure des Signaux Analogiques
+
+Pour mesurer des signaux analogiques dans un système numérique, ils doivent d’abord être convertis en valeurs numériques discrètes. Un convertisseur analogique-numérique (**ADC**) est un circuit électronique qui transforme une tension analogique en une valeur numérique.
+
+![Signal Analogique](./images/semnalanalogic.png?600)
+
+Une caractéristique essentielle d’un ADC est sa **résolution**, qui indique le nombre de valeurs de sortie discrètes qu’il peut produire sur l’intervalle de mesure. Comme les résultats de la conversion sont stockés sous forme binaire, la résolution est généralement exprimée en **bits**.  
+Le **quantum de mesure** — le plus petit changement détectable par l’ADC — se calcule comme suit : plage de tension d’entrée divisée par le nombre de valeurs de sortie possibles (2^N).
+
+![Résolution ADC](./images/rezolutie.png?800)
+
+Par exemple, un ADC 10 bits fournit 2^10 = 1024 valeurs différentes. Pour une plage de mesure de 0V à 5V, le quantum serait (5V - 0V)/1024 ≈ 4,8 mV.
+
+Une autre caractéristique importante est la **fréquence d’échantillonnage**, qui définit à quelle fréquence les valeurs sont converties, et influence la fidélité de la reconstitution du signal d’origine après traitement numérique. Ci-dessous, une illustration montre comment un signal reconstruit par un DAC peut différer de l’original selon la fréquence d’échantillonnage.
+
+![Théorème de Nyquist](./images/illustration-of-the-nyquist-shannon-sampling-theorem-if-sampling-at-a-frequency-that-is.png?800)
+
+### Théorème de Nyquist
+
+Pour reproduire un signal sans perte, la fréquence d’échantillonnage doit être **au moins deux fois** supérieure à la fréquence maximale présente dans le signal. Cela s’applique aussi bien aux sinusoïdes qu’aux signaux complexes comme la voix ou la musique.
+
+- L’audition humaine couvre de 20Hz à 20kHz, mais la voix humaine se situe généralement entre 20–4000Hz.
+- Les systèmes téléphoniques échantillonnent souvent à 8000Hz pour assurer une reproduction intelligible.
+- Les CD audio utilisent 44100Hz pour couvrir toute la gamme audible avec une haute fidélité.
+
+### Types d’ADC
+
+Selon leur fonctionnement interne, les ADC peuvent être classés en plusieurs types :
+
+- ADC Flash (Conversion directe)
+- ADC à Approximation Successive (SAR)
+- ADC Intégrateur (pente simple, double pente)
+- ADC Sigma-Delta (1 bit ou suréchantillonnage)
+
+---
+
+<details>
+<summary>Cliquez pour afficher plus de détails</summary>
+
+### Résolution
+
+La résolution définit le nombre de valeurs discrètes que l’ADC peut fournir. Par exemple :
+- Résolution 8 bits = 256 niveaux (valeurs de 0 à 255)
+- Pour une plage de 0–5V avec une résolution de 8 bits : chaque niveau ≈ 5V / 256 ≈ 0,0195V
+
+### Fréquence d’Échantillonnage
+
+La fréquence d’échantillonnage est la fréquence à laquelle le signal analogique est capturé :
+- Doit être ≥ 2× la fréquence du signal d’entrée (fréquence de Nyquist)
+- Un sous-échantillonnage provoque un **repliement spectral** (*aliasing*), où les hautes fréquences sont mal interprétées comme des fréquences plus basses
+
+![Problème d'Aliasing](./images/adc_2.png?600)
+
+### Architectures ADC
+
+#### ADC Flash
+
+- Le plus rapide, utilise une banque de comparateurs en parallèle
+- Conversion presque instantanée mais nécessite beaucoup de composants matériels
+
+![ADC Flash](./images/adc_3.png?300)
+
+#### ADC à Approximation Successive (SAR)
+
+- Utilise une recherche binaire pour converger vers la tension d’entrée
+- Plus compact et économique que le Flash, mais plus lent
+
+![ADC SAR](./images/adc_4.png?500)
+
+#### ADC Sigma-Delta
+
+- Offre une haute résolution et peu de bruit
+- Idéal pour des applications où la vitesse est moins critique
+- Utilise un circuit d’échantillonnage et de maintien (*sample-and-hold*) pour conserver la tension analogique pendant la conversion
+
+![ADC Sigma-Delta](./images/adc_5.png?500)
+
+</details>
+
+
+
+## 2. Le Convertisseur ADC de l’ATmega324P
+
+Le convertisseur analogique-numérique intégré dans le microcontrôleur ATmega324P est un **ADC à approximation successive**. Il offre une **résolution allant jusqu’à 10 bits** et peut mesurer toute tension comprise entre 0 et 5V via huit entrées analogiques multiplexées (broches du port A). Il peut également amplifier les signaux de faible amplitude avec des gains sélectionnables de 0 dB (1x), 20 dB (10x) ou 46 dB (200x).
+
+Ce convertisseur est contrôlé à l’aide de deux registres de statut et de contrôle (`ADCSRA` et `ADCSRB`) et d’un registre de sélection de multiplexeur (`ADMUX`). Les deux premiers contrôlent le déclenchement de la conversion, l’activation des interruptions, etc. Le registre du multiplexeur sélectionne le canal d’entrée ainsi que la source de tension de référence.  
+Étant donné que les registres du processeur sont sur 8 bits et que l’ADC fournit un résultat jusqu’à 10 bits, le résultat est réparti en un **octet de poids faible** et un **octet de poids fort**.
+
+> **Formule de conversion :**  
+>
+> `ADC = V_in * 1024 / V_ref`  
+> `V_in = ADC * V_ref / 1024`
+
+Où `V_in` est la tension mesurée, et `V_ref` la tension de référence sélectionnée.
+
+---
+
+### Tension de Référence
+
+Selon la plage de signal à mesurer, il est possible de sélectionner une **tension de référence** différente pour améliorer la précision des lectures. L’ATmega324P permet l’utilisation de :
+- AVCC (tension d’alimentation)
+- Références internes de 1.1V ou 2.56V
+- Référence externe via la broche AREF
+
+---
+
+### Prédiviseur (Prescaler)
+
+L’ADC nécessite un signal d’horloge pour déterminer la durée d’une conversion. Comme l’horloge du microcontrôleur est trop rapide, un **prédiviseur** est utilisé pour la ralentir.
+
+> **F_ADC = F_CPU / PRESCALER**
+
+Les valeurs de prédiviseur vont de 2 à 128. Un prédiviseur plus élevé signifie une horloge ADC plus lente, donc des conversions plus précises. Plus de détails dans la section 25.4 de la [fiche technique ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf).
+
+---
+
+### Modes de Fonctionnement
+
+- **Mode Conversion Unique** : effectue une seule conversion. Débute en positionnant `ADSC = 1`. Il se réinitialise automatiquement à la fin.
+- **Mode Continu (Free Running)** : enchaîne les conversions en continu. `ADSC` reste à 1 et les résultats sont mis à jour en permanence.
+- **Déclenchement par Interruption Externe** : démarre une conversion sur front montant d’une broche.
+- **Mode Comparateur Analogique** : compare deux signaux analogiques. (Non utilisé dans ce TP.)
+- **Mode Timer** : utilise des événements de timer (ex. débordement ou comparaison) pour déclencher les conversions.
+
+![ADC avec Timer](./images/adctimer.png)
+
+---
+
+### Registres
+
+#### `ADMUX` – Registre de Sélection du Multiplexeur ADC
+
+![ADMUX](./images/adc_6.png?500)
+
+- **Bits 7:6 – REFS1:0** → Sélection de la tension de référence  
+  ![Bits REFS](./images/adc_7.png?500)
+- **Bit 5 – ADLAR** → Alignement gauche/droite du résultat
+- **Bits 4:0 – MUX4:0** → Sélection du canal d’entrée analogique  
+  ![Bits MUX](./images/adc_8.png?500)
+
+---
+
+#### `ADCSRA` – Registre de Contrôle et de Statut ADC A
+
+![ADCSRA](./images/adcsra.png?600)
+
+- **Bit 7 – ADEN** : Active l’ADC  
+- **Bit 6 – ADSC** : Démarre la conversion  
+- **Bit 5 – ADATE** : Active le déclenchement automatique  
+- **Bit 4 – ADIF** : Indicateur de fin de conversion  
+- **Bit 3 – ADIE** : Active l’interruption ADC  
+- **Bits 2:0 – ADPS2:0** : Définissent le prédiviseur  
+  ![Bits ADPS](./images/adc_10.png?500)
+
+---
+
+#### `ADCSRB` – Registre de Contrôle et de Statut ADC B
+
+![ADCSRB](./images/adcsrb.png?600)
+
+- **Bits 2:0 – ADTS2:0** : Source du déclenchement automatique  
+  ![Bits ADTS](./images/adc_13.png?500)
+
+---
+
+### Exemple
+
+**Initialisation pour lire depuis la broche PA1 (ADC1) :**
+```c
+ADMUX = 0;
+// Sélection du canal ADC1
+ADMUX |= (1 << MUX0);
+// Utilisation de AVCC comme tension de référence
+ADMUX |= (1 << REFS0);
+
+ADCSRA = 0;
+// Prédiviseur réglé à 128
+ADCSRA |= (7 << ADPS0);
+// Activation de l’ADC
+ADCSRA |= (1 << ADEN);
+```
+
+**Lecture du résultat de conversion :**
+```c
+// Démarrer la conversion
+ADCSRA |= (1 << ADSC);
+// Attendre la fin de la conversion
+while (ADCSRA & (1 << ADSC));
+
+uint16_t result = ADC; // Résultat combiné sur 10 bits
+```
+
+
+## 4. Exercices
+
+L’objectif de ces exercices est d’utiliser le **convertisseur analogique-numérique (ADC)** intégré au microcontrôleur ATmega324P pour effectuer diverses lectures (boutons multiplexés via des diviseurs de tension, capteur de température).
+
+Téléchargez le squelette de code : ![lab_4_skel.zip](https://ocw.cs.pub.ro/courses/_media/pm/lab/lab_4_skel.zip)
+
+---
+
+### **Tâche 0**
+
+Complétez le squelette de code fourni (`adc.c`) en implémentant une fonction similaire à `analogRead(uint8_t pin)`. Cette fonction doit :
+
+- Effectuer une **conversion unique** sur la broche analogique spécifiée.
+- **Bloquer** l’exécution jusqu’à ce que le résultat soit disponible.
+- Retourner la **valeur numérique convertie**.
+
+---
+
+### **Tâche 1**
+
+À l’aide de la fonction `analogRead()`, lisez les valeurs du **capteur de température** connecté à la broche **PA0**.
+
+- Touchez le capteur (avec précaution) avec votre doigt et observez comment les lectures changent.
+- Optionnel : affichez la valeur via la sortie série.
+
+---
+
+### **Tâche 2**
+
+Les boutons 1 à 6 sont **multiplexés** sur une seule broche analogique **PA5**, à l’aide de **diviseurs de tension**. Consultez le schéma matériel pour une explication visuelle.
+
+Étapes :
+1. Déterminez les **plages de valeurs analogiques** retournées lorsque chaque bouton est pressé.
+2. Définissez des valeurs seuils appropriées à l’aide de macros `#define`.
+3. Implémentez la logique suivante :
+   - **BTN2** → allumer la **LED rouge**
+   - **BTN3** → allumer la **LED verte**
+   - **BTN5** → allumer la **LED bleue**
+
+---
+
+### **Tâche 3**
+
+Configurez l’ADC pour qu’il démarre **automatiquement** une conversion sur le **capteur de température (PA0)** **toutes les secondes**, en utilisant le **Timer1**.
+
+Conseils :
+- Le Timer1 est déjà configuré pour déclencher des interruptions toutes les secondes.
+- Consultez la fiche technique pour :
+  - Le bit **ADATE (Auto Trigger Enable)**
+  - Le champ **ADTS (Auto Trigger Source)** dans les registres `ADCSRA` et `ADCSRB`
+- Optionnellement, au lieu d’utiliser le déclenchement automatique, vous pouvez **appeler manuellement** `analogRead()` dans le gestionnaire d’interruption du Timer1.
+
+---
+
+## 5. Liens Utiles
+
+- 📘 [Fiche technique ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)
+- 🔧 [Documentation matérielle PM-Board](https://github.com/dantudose/PM-Board)
+- 🔲 [Boutons multiplexés sur une seule broche](https://www.instructables.com/Accessing-5-buttons-through-1-Arduino-pin-Revisi)
