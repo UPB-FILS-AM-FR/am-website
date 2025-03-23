@@ -1,0 +1,290 @@
+---
+sidebar_position: 8
+---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# TP 6 : I2C (Inter-Integrated Circuit)
+
+Ce TP est consacré à la compréhension et à l’utilisation du protocole I2C sur le microcontrôleur ATmega324P. Pour aller plus loin, vous pouvez consulter la [fiche technique de l’ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf) et l’article [Wikipedia : I2C](https://fr.wikipedia.org/wiki/I%C2%B2C).
+
+---
+
+## 1. Qu’est-ce que l’I2C ?
+
+I2C (aussi appelé IIC ou TWI – Two-Wire Interface) est un protocole de communication synchrone, série, semi-duplex, développé par Philips en 1982.  
+Il est couramment utilisé pour la communication entre microcontrôleurs et capteurs ou mémoires.
+
+Un bus I2C utilise deux lignes :
+- **SDA** – Ligne de données série
+- **SCL** – Ligne d’horloge série
+
+L’horloge est toujours générée par le maître. Un seul périphérique peut transmettre à la fois sur la ligne SDA, ce qui fait de l’I2C un protocole semi-duplex.
+
+![]( ./images/i2c-slaves.jpeg?450)
+
+---
+
+## 2. Fonctionnement de l’I2C
+
+Contrairement au SPI, l’I2C ne nécessite pas de ligne *Slave Select* séparée.  
+Chaque esclave possède une **adresse unique** (généralement sur 7 bits), et la communication est toujours initiée par le **Maître**.
+
+Une communication I2C se divise en :
+- Une **trame d’adresse**
+- Une ou plusieurs **trames de données**
+
+Les messages sont encadrés par des signaux spéciaux :
+- **Condition de démarrage (Start)**
+- **Condition d’arrêt (Stop)**
+
+![](./images/introduction-to-i2c-message-frame-and-bit-2.png?600)
+
+---
+
+### 2.1 Condition de démarrage
+
+Avant d’envoyer l’adresse de l’esclave, le **Maître** doit générer une **condition de démarrage** :
+- Pendant que SCL est à l’état HAUT, SDA passe de l’état HAUT à BAS.
+
+Cela indique à tous les esclaves d’écouter l’adresse à venir.
+
+---
+
+### 2.2 Trame d’adresse
+
+Après la condition de démarrage, le maître envoie :
+- 7 bits : adresse de l’esclave (A6–A0)
+- 1 bit : R/W (0 = écriture, 1 = lecture)
+
+L’esclave qui reconnaît son adresse envoie un **ACK** en forçant SDA à l’état BAS pendant le 9e cycle d’horloge.
+
+Si SDA reste à l’état HAUT pendant ce 9e cycle, c’est un **NACK**.
+
+---
+
+### 2.3 Trames de données
+
+Si un ACK est reçu, le maître continue avec :
+- **Écriture** : le maître envoie des octets, l’esclave acquitte chaque octet.
+- **Lecture** : l’esclave envoie des octets, le maître acquitte chaque octet.
+
+Pour terminer une lecture, le **Maître envoie un NACK** au lieu d’un ACK après le dernier octet.
+
+Chaque octet est suivi d’un ACK/NACK selon la direction de transfert.
+
+---
+
+### 2.4 Condition d’arrêt
+
+Pour terminer la communication, le maître génère une **condition d’arrêt** :
+- SDA passe de l’état BAS à HAUT **après** que SCL est HAUT.
+
+![](./images/image6.png?700)
+
+---
+:::info
+
+ Plusieurs esclaves peuvent partager le même bus, mais chacun possède une adresse unique (généralement sur 7 bits).  
+ Le bit de poids faible de la trame d’adresse indique s’il s’agit d’une lecture (1) ou d’une écriture (0).  
+ Une fois l’esclave sélectionné, la transmission de données peut commencer.
+
+:::
+
+## 3. Registres de configuration I2C
+
+Le microcontrôleur ATmega324P supporte les modes **Maître** et **Esclave** pour l’I2C.
+
+---
+
+### Registre de débit TWI (`TWBR`)
+
+![](./images/twbr.png?600)
+
+- Ce registre définit le diviseur de fréquence qui détermine la vitesse de l’horloge SCL en mode **Maître**.
+
+---
+
+### Registre de contrôle TWI (`TWCR`)
+
+![](./images/twcr.png?600)
+
+- Ce registre permet d’activer la communication I2C, de générer les conditions Start/Stop, de gérer les acquittements et de détecter les collisions.
+
+| Bit | Nom   | Description |
+|-----|--------|-------------|
+| 7   | TWINT | Drapeau d’interruption TWI (mis à 1 par le matériel, effacé en écrivant 1) |
+| 6   | TWEA  | Activation de l’acquittement : 1 = envoie ACK, 0 = envoie NACK |
+| 2   | TWEN  | Activation du module TWI : 1 = actif, 0 = inactif |
+
+---
+
+### Registre de statut TWI (`TWSR`)
+
+![](./images/twsr.png?600)
+
+- Indique l’état actuel du TWI (start envoyé, adresse reconnue, etc.) et les réglages du préscaler.
+
+---
+
+### Registre de données TWI (`TWDR`)
+
+![](./images/twdr.png?600)
+
+- Contient l’octet à transmettre (TX) ou l’octet reçu précédemment (RX), selon le contexte.
+
+---
+
+## 4. Utilisation du module I2C sur AVR
+
+La configuration du module I2C est relativement simple — il suffit principalement de définir la fréquence de l’horloge.
+
+### Exemple : Initialiser l’I2C à 100kHz
+
+```c
+void twi_init(void)
+{
+  // Régler le préscaler à 1 (TWPS = 00)
+  TWSR = (0 << TWPS0);
+
+  // Régler le registre de débit
+  // Formule : TWBR = (F_CPU / SCL_freq - 16) / (2 * prescaler)
+  TWBR = 52; // Pour une horloge CPU de 12MHz et un SCL à 100kHz
+}
+```
+
+Cependant, effectuer une transaction I2C complète est plus complexe et nécessite les étapes suivantes :
+
+1. Configurer `TWCR` pour émettre une **condition START**.
+2. Attendre la fin de l’opération (vérifier `TWCR.TWINT`).
+3. Charger l’**adresse de l’esclave** dans `TWDR` et lancer la transmission.
+4. Attendre et vérifier l’**ACK** via `TWSR`.
+5. Transmettre ou recevoir les octets de données via `TWDR`, en attendant à chaque étape.
+6. Émettre une **condition STOP** à l’aide d’un autre drapeau dans `TWCR`.
+
+---
+
+## 5. Capteur de pression – MPL3115A2
+
+La carte de TP inclut un capteur de pression et de température **MPL3115A2** qui communique via I2C.
+
+### Brochage I2C pour le capteur :
+
+| Signal I2C | Broche GPIO |
+|------------|-------------|
+| Enable     | PA6         |
+| SCL        | PC0         |
+| SDA        | PC1         |
+
+La communication avec le capteur nécessite un **accès en lecture/écriture à ses registres internes** via I2C. Avant toute opération, l’**adresse du registre** doit être envoyée.
+
+La table des registres et leurs adresses respectives se trouve dans la [fiche technique du MPL3115A2](https://www.nxp.com/docs/en/data-sheet/MPL3115A2.pdf), section 14.
+
+![: Table des registres MPL3115A2]( ./images/mpl3115a2-registers.jpeg?400 )
+
+
+## 6. Exercices
+
+Téléchargez l’[archive du squelette de code](https://ocw.cs.pub.ro/courses/_media/pm/lab/lab6/lab6-skel-2023-2024.zip) et suivez les instructions marquées avec `TODO`.
+
+---
+
+### **Tâche 0** – Initialisation de base de l’I2C
+
+Complétez les fonctions `twi_init`, `twi_start` et `twi_stop` dans le fichier `twi.c`.
+
+> 💡 Les définitions de constantes utiles se trouvent dans [avr-libc util/twi.h](https://www.nongnu.org/avr-libc/user-manual/group__util__twi.html)
+
+---
+
+### **Tâche 1** – Lecture et écriture
+
+Implémentez les fonctions `twi_read_ack`, `twi_read_nack` et `twi_write` dans `twi.c`.
+
+> 💡 Astuce : consultez le tableau `23-2`, page 268 de la [fiche technique ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf) pour un exemple complet.
+
+---
+
+### **Tâche 2** – Découverte des périphériques sur le bus I2C
+
+Implémentez `twi_discover` dans `twi.c`. Cette fonction doit envoyer une adresse en lecture (SLA_R) à toutes les adresses possibles du bus I2C (0–127) et détecter celles qui répondent avec un ACK.
+
+- Affichez les adresses des périphériques détectés via le port série.
+- Veillez à appeler cette fonction dans `main()`.
+
+> 💡 Astuce : utilisez le registre `TWSR` pour vérifier si un ACK a été reçu. Consultez le tableau `23-4`, page 275 de la fiche technique pour les codes de statut.
+
+**Pour envoyer une adresse de lecture ou d’écriture :**
+
+```c
+// Adresse de lecture
+(ADRESSE_PERIPHERIQUE << 1) | 1
+
+// Adresse d’écriture
+ADRESSE_PERIPHERIQUE << 1
+```
+
+📌 L’adresse du capteur est `0x60` → lecture = `0xC1`, écriture = `0xC0`.
+
+---
+
+### **Tâche 3** – Capteur de pression MPL3115A2
+
+Nous allons maintenant configurer et lire les valeurs du capteur **MPL3115A2** via I2C.
+
+#### Tâche 3.1 – Initialiser le capteur
+
+Complétez `mpl3115a2_init` dans `mpl3115a2.c`. Cette fonction doit être appelée une seule fois dans `main()` avant la boucle principale.
+
+📌 Réglez `CTRL_REG1` pour fonctionner en **mode pression** (assurez-vous que le bit `ALT` est à 0).
+
+---
+
+#### Tâche 3.2 – Lire la pression et la température
+
+Complétez `mpl3115a2_read_pressure` et `mpl3115a2_read_temperature` dans `mpl3115a2.c`. Appelez-les dans la boucle principale et affichez les valeurs en série.
+
+:::tip Astuce 1
+ La section `14` de la [fiche technique MPL3115A2](https://www.nxp.com/docs/en/data-sheet/MPL3115A2.pdf) décrit les registres.
+:::
+
+:::tip Astuce 2
+Formule de la pression (format Q18.2) :
+
+```c
+PRESSURE = (OUT_P_MSB << 12) | (OUT_P_CSB << 4) | (OUT_P_LSB >> 4);
+```
+:::
+
+---
+
+### Séquence de lecture d’un registre
+
+Utilisez la séquence suivante pour lire un registre :
+
+```c
+twi_start();
+twi_write(ADRESSE_PERIPHERIQUE << 1);        // SLA + W
+twi_write(ADRESSE_REGISTRE);                 // registre à lire
+twi_start();                                 // START répété
+twi_write((ADRESSE_PERIPHERIQUE << 1) | 1);  // SLA + R
+
+uint8_t data = 0;
+twi_read_nack(&data);
+twi_stop();
+```
+
+---
+
+✅ Une fois les tâches terminées, vous devriez pouvoir communiquer avec le MPL3115A2, détecter son adresse, le configurer et lire des valeurs valides de pression et de température.
+
+---
+
+### 🔗 Liens utiles
+
+- [Fiche technique ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)
+- [Fiche technique MPL3115A2](https://www.nxp.com/docs/en/data-sheet/MPL3115A2.pdf)
+- [Tutoriel I2C par SparkFun](https://learn.sparkfun.com/tutorials/i2c/all)

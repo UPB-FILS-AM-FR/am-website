@@ -1,0 +1,227 @@
+---
+sidebar_position: 7
+---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# TP 5 : SPI (Interface Périphérique Série)
+
+## 1. Introduction
+
+Dans ce TP, nous allons explorer le protocole de communication SPI, largement utilisé dans les systèmes embarqués pour les échanges de données entre deux ou plusieurs périphériques.  
+L’objectif final sera de construire un lecteur audio sur la carte de laboratoire, qui lira des fichiers *.wav* depuis une carte SD et les jouera à l’aide du haut-parleur intégré.
+
+---
+
+## 2. Protocole SPI (Serial Peripheral Interface)
+
+SPI est une norme de communication synchrone développée par Motorola. Elle fonctionne en mode **full-duplex** (transfert de données simultané dans les deux directions).
+
+La communication repose sur une architecture **Maître-Esclave** (un périphérique Maître et un ou plusieurs Esclaves). Le **Maître** initie toujours la communication.
+
+SPI est aussi appelé protocole à *quatre fils*, car il utilise quatre lignes distinctes :
+
+- **MOSI** — Master Out Slave In (données envoyées du **Maître** vers l’**Esclave**)
+- **MISO** — Master In Slave Out (données envoyées de l’**Esclave** vers le **Maître**)
+- **SCLK** — Horloge série (signal d’horloge généré par le **Maître**)
+- **CS / SS** — Chip Select / Slave Select (utilisé par le **Maître** pour sélectionner un **Esclave** ; actif à l’état BAS)
+
+![Schéma du bus SPI]( ./images/spi1.png?500 )
+
+---
+
+### 2.1 Connexion de plusieurs Esclaves
+
+Plusieurs périphériques **Esclaves** peuvent être connectés à un seul **Maître**. Les lignes *MOSI*, *MISO* et *SCLK* sont partagées, tandis que chaque **Esclave** possède sa propre ligne *CS / SS*.
+
+Quand le **Maître** souhaite communiquer avec un **Esclave** spécifique, il place la ligne *CS / SS* correspondante à l’état **BAS** (actif). Toutes les autres lignes *SS* restent **HAUTES**, et les **Esclaves** concernés ignorent la communication.
+
+![Connexion de plusieurs Esclaves]( ./images/spi2.png?500 )
+
+---
+
+## 3. Transmission de Données en SPI
+
+Pour démarrer la communication :
+1. Le **Maître** définit la fréquence d’horloge (elle ne doit pas dépasser la vitesse maximale supportée par l’**Esclave**).
+2. Il sélectionne l’**Esclave** en plaçant sa ligne *CS / SS* à **BAS**.
+
+Pendant chaque cycle d’horloge SPI (mode full-duplex) :
+- Le **Maître** envoie un bit via *MOSI*, que l’**Esclave** lit.
+- Simultanément, l’**Esclave** envoie un bit via *MISO*, que le **Maître** lit.
+
+Cela s’effectue généralement à l’aide de **registres à décalage** connectés en boucle dans le **Maître** et l’**Esclave**.
+
+![Registre à décalage SPI]( ./images/spi4.png?500 )
+
+En général :
+- Le bit de poids fort (MSB) est envoyé en premier.
+- Une fois un mot transmis, les deux périphériques ont échangé l’ensemble du contenu de leurs registres à décalage.
+
+Une fois la transmission terminée :
+- Le **Maître** arrête le signal d’horloge (*SCLK*).
+- Il désélectionne l’**Esclave** en plaçant la ligne *CS / SS* correspondante à **HAUT**.
+
+![Transaction SPI complète]( ./images/spi5.png?500 )
+
+**Remarque** : Tous les **Esclaves** non sélectionnés ignorent les lignes *SCLK* et *MOSI*, et ne pilotent pas la ligne *MISO*.  
+Un seul **Esclave** peut être sélectionné à la fois par le **Maître**.
+
+
+## 4. SPI sur l’ATMega324
+
+Le microcontrôleur ATMega324 fournit une interface SPI pouvant fonctionner en mode **Maître** ou **Esclave**.
+
+Comme d’habitude, la configuration et l’utilisation de cette interface impliquent l’utilisation de registres de contrôle, de statut et de données.
+
+La description complète des registres liés au SPI se trouve dans la [fiche technique de l’ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf), chapitre : **SPI – Serial Peripheral Interface** (à partir de la page 214).
+
+Voici un aperçu des registres SPI les plus importants :
+
+---
+
+### Registre de Contrôle SPI (SPCR)
+
+| Bit   | Nom     | Description |
+|-------|----------|-------------|
+| 6     | **SPE**   | Activation du SPI — Mettre à 1 pour activer l’interface SPI |
+| 5     | **DORD**  | Ordre des bits — 1 : LSB en premier, 0 : MSB en premier |
+| 4     | **MSTR**  | Sélection Maître/Esclave — 1 : mode Maître, 0 : mode Esclave |
+| 3-0   | **CPOL, CPHA, SPR1, SPR0** | Polarité, phase et fréquence de l’horloge SPI |
+
+![Registre SPCR](./images/spcr.png?700)
+
+---
+
+### Registre de Statut SPI (SPSR)
+
+| Bit   | Nom     | Description |
+|-------|----------|-------------|
+| 7     | **SPIF**  | Drapeau d’interruption SPI — Mis à 1 quand un transfert est terminé |
+
+![Registre SPSR](./images/spsr.png?700)
+
+---
+
+### Registre de Données SPI (SPDR)
+
+Le registre **SPDR** est utilisé à la fois pour transmettre et recevoir des données :
+- Écrire dans ce registre **démarre une nouvelle transmission** (en mode **Maître**).
+- Lire dans ce registre permet d’obtenir les données reçues via SPI.
+
+![Registre SPDR](./images/spdr.png?700)
+
+---
+
+## 5. Carte SD au format FAT
+
+La carte de laboratoire intègre un lecteur de carte SD qui communique avec le microcontrôleur ATMega324 via le protocole SPI — c’est l’application principale du TP d’aujourd’hui.
+
+Le schéma ci-dessous montre comment le lecteur de carte SD est connecté au microcontrôleur. Remarquez que certaines broches déjà utilisées dans les TP précédents sont ici réutilisées pour les signaux SPI.
+
+![Connexion SPI avec Carte SD](./images/spi_sd1_ss.png)
+
+---
+
+### Format de la carte SD : FAT32
+
+Les cartes SD que nous utiliserons sont formatées avec le système de fichiers **FAT32**. Pour simplifier les opérations sur les fichiers, nous utiliserons la bibliothèque **Petit FAT Filesystem** — choisie pour sa faible empreinte mémoire (2–4 Ko) et sa consommation RAM minimale (seulement 46 octets + pile).
+
+---
+
+### API de la bibliothèque Petit FAT Filesystem
+
+Voici les principales fonctions fournies par la bibliothèque :
+
+```c
+FRESULT pf_mount (FATFS*);                   // Monter ou démonter un volume
+FRESULT pf_open (const char*);               // Ouvrir un fichier
+FRESULT pf_read (void*, WORD, WORD*);        // Lire des données depuis un fichier
+FRESULT pf_write (const void*, WORD, WORD*); // Écrire des données dans un fichier
+FRESULT pf_lseek (DWORD);                    // Déplacer le pointeur de fichier
+FRESULT pf_opendir (DIR*, const char*);      // Ouvrir un répertoire
+FRESULT pf_readdir (DIR*, FILINFO*);         // Lire un répertoire
+```
+
+Ces fonctions permettent un accès bas niveau aux fichiers depuis un système embarqué — exactement ce dont nous avons besoin pour implémenter un lecteur audio de base sur notre carte à microcontrôleur.
+
+## 6. Exercices
+
+📥 **Téléchargez l’archive du code de départ :**  
+[lab5_skel.zip](https://ocw.cs.pub.ro/courses/_media/pm/lab/lab5_skel.zip)
+
+Dans ce TP, vous n’aurez pas beaucoup de code à écrire, mais il est important de bien comprendre comment votre code interagit avec le squelette fourni et le comportement des fonctions de bibliothèque que vous utiliserez.
+
+---
+
+### Tâche 1 : Contrôle SPI
+
+Implémentez les fonctions de communication SPI de base dans `spi.c` :
+- `SPI_init()`
+- `SPI_exchange()`
+
+:::tip
+
+- Configurez **PB4 (SS)** comme sortie et mettez-le à **HAUT** pour désactiver les interruptions SPI déclenchées par la sélection esclave.
+- Suivez les exemples de la **page 217** de la fiche technique.
+- Référez-vous au schéma de câblage de la section 5 pour identifier les broches **MOSI** et **SCLK**.
+- Configurez le SPI en mode **Maître** avec **SCLK = fosc/16** (fréquence plus lente pour compatibilité avec la carte SD).
+- N’oubliez pas d’utiliser les registres avec suffixe `0` : `SPCR0`, `SPDR0`, etc.
+- Utilisez `SPDR0` pour envoyer une donnée et recevoir la réponse dans une seule fonction (full-duplex), remplaçant ainsi les fonctions `SPI_read()` et `SPI_write()`.
+
+:::
+
+---
+
+### Tâche 2 : Contrôle de la carte SD
+
+Dans `sd.c`, implémentez :
+- `SD_init()`
+- `SD_receive()`
+- `SD_transmit()`
+
+:::tip
+- **PA2** (SS pour la carte SD) doit être configurée en sortie. Laissez la gestion des niveaux HAUT/BAS au code squelette.
+- Utilisez `SPI_exchange()` à la fois pour l’émission et la réception.
+- Dans `SD_receive()`, envoyez **0xFF** comme octet factice pour initier une lecture (le Maître initie toujours la communication).
+- ✅ **Vérification** : Après avoir téléversé le code, l’écran LCD doit afficher `Mounted!` au lieu de `Mounting...`. Si ce n’est pas le cas, appuyez sur **RESET** et effectuez un débogage si nécessaire.
+:::
+
+---
+
+### Tâche 3 : Affichage du premier fichier
+
+Implémentez `init_directory()` dans `lab5.c` pour afficher le premier fichier `.wav` du dossier `/music` :
+- Utilisez `pf_opendir()` pour ouvrir le dossier.
+- Utilisez `pf_readdir()` pour parcourir les entrées.
+- Ignorez les fichiers dont le nom commence par un underscore `_`.
+- Utilisez `LCD_clear_top_line()` et `LCD_printAt()` pour afficher le nom du fichier.
+
+---
+
+### Tâche 4 : Parcours des fichiers
+
+Dans `lab5.c`, gérez l’appui sur le bouton **PB2** :
+- Lors de l’appui, affichez le **fichier valide suivant** dans `/music` (en ignorant ceux commençant par `_`).
+- Si vous êtes sur le dernier fichier, revenez au **premier**.
+- `pf_readdir()` retourne un nom vide `""` à la fin du dossier.
+- Ajoutez un **délai (200–300ms)** pour éviter plusieurs changements de fichier pour un seul appui.
+
+---
+
+### Tâche 5 : Lecture audio 🎵
+
+Lorsque **PD6** est pressé, appelez `play()` pour jouer le fichier actuellement affiché :
+- Implémentez ce comportement dans la section `TODO5` de `lab5.c`.
+- La lecture peut être **interrompue** en pressant **PD6 + PB2** en même temps — ce comportement est déjà pris en charge dans le squelette.
+
+---
+
+## 🔗 Liens utiles
+
+- 📘 [Fiche technique ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)
+- 💾 [Tutoriel sur carte SD au format FAT](https://codeandlife.com/2012/04/25/simple-fat-and-sd-tutorial-part-3/)
+- 🔄 [Guide du protocole SPI](https://learn.sparkfun.com/tutorials/serial-peripheral-interface-spi/all)
