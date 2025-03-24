@@ -4,6 +4,13 @@ sidebar_position: 1
 
 # Project Rules
 
+## Github Classroom Project Assignment
+
+[Invite Link](https://classroom.github.com/a/wDe7J7lK)
+Choose your username from the list.
+
+## Spreadsheet for project idea
+[Link](https://docs.google.com/spreadsheets/d/1JU4cNTG8_rNVFsv24GdaxWRpsdvtV5wiMpHFUeI6jws/edit?usp=sharing)
 
 ## Grading throughout the semester
 
