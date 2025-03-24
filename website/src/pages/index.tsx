@@ -25,6 +25,19 @@ function HomepageHeader() {
             to="/lab">
             Get Started
           </Link>
+          <br></br><span> &nbsp;&nbsp;&nbsp;  </span>
+          <Link
+            className="button button--secondary button--lg"
+            to="https://curs.upb.ro/2024/course/view.php?id=10156">
+            Moodle Page
+          </Link>
+          <br></br><span> &nbsp;&nbsp;&nbsp;  </span>
+          <Link
+            className="button button--secondary button--lg"
+            to="   https://teams.microsoft.com/l/channel/19%3Ae4hGjDKs-EhSr2a__dGX3WWqS0UPuyWZWOQZMaOs38U1%40thread.tacv2/General?groupId=81361826-0003-4f22-9b86-6a341a893f92&tenantId=2d8cc8ba-8dda-4334-9e5c-fac2092e9bac">
+            Teams Group
+          </Link>
+
         </div>
       </div>
     </header>
