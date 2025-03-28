@@ -1,3 +1,6 @@
+---
+sidebar_position: 1
+---
 # Info General Projet
 
 ## Github Classroom Project Assignment
