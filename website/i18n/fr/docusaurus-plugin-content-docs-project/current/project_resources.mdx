@@ -1,0 +1,165 @@
+---
+sidebar_position: 2
+---
+# Ressources pour le Projet
+
+Contenu de cette page :
+
+1. [Liste des microcontrôleurs utilisables](#microcontrôleurs-utilisables)
+2. [Composants universels utiles](#éléments-indispensables)
+3. [Où acheter des composants](#où-acheter)
+4. [Outils pour concevoir votre circuit](#conception-du-circuit)
+
+---
+
+## Microcontrôleurs utilisables
+
+- Arduino Nano  
+- Arduino Uno  
+- Autres cartes Arduino également acceptées  
+- Raspberry Pi Pico  
+
+Si vous avez besoin du Wi-Fi :
+- Raspberry Pi Pico W  
+- Raspberry Pi Pico 2W  
+- Arduino Nano RP2040 Connect  
+- ESP32-DevKit  
+- nRF52 DK  
+
+:::note
+Cette liste n'est pas exhaustive. Demandez à l'assistant de labo ou à l’enseignant si vous souhaitez utiliser une autre carte.
+:::
+
+:::danger Avertissement
+Vous **ne pouvez pas** utiliser de cartes qui supportent des systèmes d’exploitation complets comme Raspberry Pi 1, 2, 3, 4 ou 5.
+
+Vous **ne pouvez pas** utiliser Python ou d’autres langages de script/blocs.  
+L’objectif est d’implémenter les protocoles vous-même, à partir de ce que vous avez appris en TP.
+
+Si vous utilisez des cartes avec des microcontrôleurs récents (ARM ou RISC-V), vous pouvez utiliser des frameworks plus complexes.
+:::
+
+---
+
+## Éléments indispensables
+
+**En plus** du **microcontrôleur** et des **périphériques** nécessaires à votre projet, vous aurez besoin des éléments suivants :
+
+### Fils (Jumper Wires)
+
+Il existe plusieurs types de fils (inutile de tous les acheter) :  
+
+| | | |
+|-|-|-|
+| 1. **Fils souples simples** - les plus communs et économiques | 2. **Bandes de fils souples** - utiles pour connecter plusieurs broches consécutives | 3. **Fils rigides** (souvent en boîte) - parfaits pour breadboards et prototypage PCB |
+| ![simple jumper](./images/jumper_simple.jpg) | ![dp_3](./images/jumper_wires.png) | ![jumper_box](./images/jumper_box.png) |
+
+
+---
+
+### Résistances
+
+Les résistances sont presque toujours nécessaires. Que vous utilisiez une LED, une photorésistance, un potentiomètre ou un bouton, vous en aurez besoin.
+
+Elles permettent de réduire le courant, abaisser la tension et contrôler les niveaux de signal (ex: "pull-up", "pull-down", diviseur de tension).
+
+Les résistances traversantes sont codées en couleurs :
+
+![](./images/resistors_code.jpg)
+
+---
+
+### Breadboards
+
+Parfaites pour le prototypage. Pas besoin de souder les composants.  
+Si vous ne savez pas comment cela fonctionne, consultez [ce lien](https://www.build-electronic-circuits.com/breadboard/).
+
+![](./images/breadboard.jpeg)
+
+---
+
+### Broches d'en-tête (Header Pins)
+
+Les cartes comme "Arduino Nano" ou "Raspberry Pi Pico" n'ont pas toujours les broches soudées. Il faut donc les acheter séparément.
+
+Les barres de pins peuvent être cassées facilement à la taille souhaitée.
+
+![header_pins](./images/headers.png)
+
+:::warning
+Assurez-vous d’acheter la bonne taille selon votre périphérique. Demandez à l’assistant si vous avez un doute.
+:::
+
+---
+
+### PCB universel (Plaque de prototypage)
+
+Si vous souhaitez un projet plus propre que sur breadboard, utilisez un PCB universel.  
+Les breadboards sont pratiques mais encombrantes et moins fiables pour le câblage.
+
+![protoboard](./images/protoboard.jpg)
+
+---
+
+## Ce dont vous aurez probablement besoin (mais que vous n’avez pas à acheter)
+
+- Vous devrez probablement **souder** des composants. Des fers à souder sont disponibles en salle ED218. Vous apprendrez à souder pendant les heures de projet. (Demandez du temps supplémentaire si besoin).
+- **Multimètre** – utile pour déboguer chez vous, mais pas obligatoire, on en a au labo. (Il y a aussi des **oscilloscopes**, mais rarement nécessaires pour votre projet).
+- Vous pouvez vouloir **imprimer en 3D** un boîtier ou des pièces mécaniques. L’assistant peut vous aider ou vous orienter vers un service d’impression.
+- Si vous ne pouvez pas acheter les composants, on peut vous **prêter des kits** (attention, stock limité !).
+
+---
+
+## Où acheter
+
+Choisissez de préférence des boutiques locales pour éviter les frais de port.  
+Une bonne idée serait d’acheter un kit électronique à plusieurs.  
+Un bon kit contient au minimum :
+- des fils, résistances, LEDs, transistors, condensateurs (de types variés)
+- souvent quelques moteurs + drivers, et circuits intégrés communs
+
+:::info
+Ceci n’est pas une liste exhaustive de boutiques, et vous n’êtes pas obligé d’acheter à ces endroits.  
+Choisissez ce qui vous convient.
+:::
+
+
+- https://www.optimusdigital.ro/en/ - pres de UPB
+- https://cleste.ro/
+- https://sigmanortec.ro/
+- https://ardushop.ro/ro/
+
+Autres [boutiques electroniques sur Rue "Maica Domunului"](https://www.google.com/search?q=magazine+electronice+maica+domnului+bucuresti&sca_esv=326bfc1759a095a4&udm=1&sa=X&sqi=2&ved=2ahUKEwiSmtavrq2MAxUJQlUIHaCbL6AQjGp6BAgbEAE&biw=1920&bih=961&dpr=2)
+
+----
+
+Si vous ne trouvez pas ce dont vous avez besoin localement, vous pouvez également chercher sur :
+- https://ro.mouser.com/
+- https://www.tme.eu/ro/
+
+Je ne recommande pas des sites comme Digikey ou Vector, car ils ne gèrent généralement pas les frais de douane/taxes à votre place.
+
+**Règle générale** : si vous ne trouvez pas en Roumanie, cherchez dans des boutiques situées dans l’UE.
+
+:::note
+Veuillez ne pas acheter de kits de projets déjà faits (voitures, suiveurs de ligne, etc.), sauf si vous y ajoutez des fonctionnalités **significatives et importantes**.
+:::
+
+---
+
+## Conception du circuit
+
+- [Kicad](https://www.kicad.org/) – Suite open-source de conception électronique (EDA)
+- [TinkerCad](https://www.tinkercad.com/) – Outil en ligne simple pour simuler et dessiner des circuits
+
+---
+
+## Autres liens utiles
+
+- [Tutoriels Kicad (YouTube)](https://www.youtube.com/playlist?list=PLZNH6jlLeFXsg9ohRMbJ0qqSfUrRyAn7b)
+
+- [Electronic Components 101](https://components101.com/) – Informations détaillées sur les composants électroniques
+
+- [Octopart – Moteur de recherche pour composants](https://octopart.com/)
+
+- [Identification des transistors (NPN, FET, etc.)](https://www.elprocus.com/easy-pin-identification/#:~:text=In%20NPN%20type%2C%20the%20pin,to%20the%20Tab%20is%20Collector.&text=To%20identify%20a%20Field%20Effect,in%20the%20anti%2Dclockwise%20direction.)
