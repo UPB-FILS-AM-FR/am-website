@@ -200,7 +200,7 @@ uint16_t result = ADC; // Combined 10-bit result
 
 The objective of these exercises is to use the **analog-to-digital converter (ADC)** integrated into the ATmega324P microcontroller to perform various readings (multiplexed buttons via voltage dividers, temperature sensor).
 
-Download the code skeleton: ![lab_4_skel.zip](https://ocw.cs.pub.ro/courses/_media/pm/lab/lab_4_skel.zip)
+Download the code skeleton: [lab_4_skel.zip](./resources/lab4_skel.zip)
 
 ---
 
