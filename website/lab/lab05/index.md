@@ -151,7 +151,7 @@ In this lab, you won’t be writing a lot of code, but it’s important to under
 
 ---
 
-###  Task 1: SPI Control
+###  Task 1: SPI Control (2p)
 
 Implement the basic SPI communication functions in `spi.c`:
 - `SPI_init()`
@@ -169,7 +169,7 @@ Implement the basic SPI communication functions in `spi.c`:
 :::
 ---
 
-###  Task 2: SD Card Control
+###  Task 2: SD Card Control  (2p)
 
 In `sd.c`, implement:
 - `SD_init()`
@@ -185,33 +185,61 @@ In `sd.c`, implement:
 
 ---
 
-### Task 3: First File Display
+### CHECKPOINT (1p)
 
-Implement `init_directory()` in `lab5.c` to show the first `.wav` file from the `/music` directory:
-- Use `pf_opendir()` to open the directory.
-- Use `pf_readdir()` to iterate through entries.
-- Skip files starting with an underscore `_`.
-- Use `LCD_clear_top_line()` and `LCD_printAt()` to display the file name.
+> After a few seconds, the LCD should display: **"Mounted!"**
+
+This confirms that the SD card has been successfully initialized and mounted.
 
 ---
 
-### Task 4: File Cycling
+### Task 3 – Reading Temperature (2p)
 
-In `lab5.c`, handle button **PB2**:
-- On press, show the **next valid file** from `/music` (skip names starting with `_`).
-- If at the last file, wrap around to the **first** file.
-- `pf_readdir()` returns a file with name `""` (empty string) at the end of the directory.
-- Add a **delay (200–300ms)** to avoid multiple file changes on a single button press.
+Set up the ADC and read temperature from an analog sensor (e.g., LM35).
+
+#### Implementation steps:
+- Create and implement `adc_init()` and `adc_read()`
+- Configure:
+  - Reference Voltage: **AVcc**
+  - ADC Prescaler: **8**
+- Convert ADC value to voltage, then to °C (e.g., `temp = voltage * 100`)
+- Display the temperature on the **LCD**
+- Also send the temperature reading via **USART** (serial)
+
+---
+
+### Task 4 – Logging Temperature to SD Card (2p)
+
+Implement `log_temperature()` in `lab5.c` to save temperature readings to a **CSV file**.
+
+#### Requirements:
+- Use `SD_log_data()` to write data to the file
+- Show current temperature on the **LCD**
+- Send current temperature via **USART**
+- When button **PD6** is pressed, append a new log entry to the file
 
 ---
 
-### Task 5: Play Music 🎵
+### Task 5 – Navigating Log Entries (2p)
 
-When **PD6** is pressed, call `play()` to play the currently displayed file:
-- Implement the behavior in the `TODO5` section of `lab5.c`.
-- Playback can be **interrupted** by pressing **PD6 + PB2** together — this is already handled in the skeleton.
+Implement `init_log_display()` and `next_log_entry()` to read the file `log.csv` **line by line**.
+
+#### Features:
+- Display each CSV line (entry) on the **LCD**
+- On **PB2** button press, move to the **next line**
+- When reaching the **end**, loop back to the **start**
 
 ---
+
+### CHECKPOINT (1p)
+
+> You must be able to scroll through all temperature logs using the button.
+
+Once complete, your logger should support:
+- Real-time sensor readings
+- Data logging on button press
+- Full log navigation via the LCD and button
+
 
 ## 🔗 Useful Links
 

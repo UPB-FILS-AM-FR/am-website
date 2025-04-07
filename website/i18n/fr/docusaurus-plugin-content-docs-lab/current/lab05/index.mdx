@@ -157,7 +157,7 @@ Dans ce TP, vous n’aurez pas beaucoup de code à écrire, mais il est importan
 
 ---
 
-### Tâche 1 : Contrôle SPI
+### Tâche 1 : Contrôle SPI (2p)
 
 Implémentez les fonctions de communication SPI de base dans `spi.c` :
 - `SPI_init()`
@@ -176,7 +176,7 @@ Implémentez les fonctions de communication SPI de base dans `spi.c` :
 
 ---
 
-### Tâche 2 : Contrôle de la carte SD
+### Tâche 2 : Contrôle de la carte SD (2p)
 
 Dans `sd.c`, implémentez :
 - `SD_init()`
@@ -192,7 +192,7 @@ Dans `sd.c`, implémentez :
 
 ---
 
-### Tâche 3 : Affichage du premier fichier
+### Tâche 3 : Affichage du premier fichier (2p)
 
 Implémentez `init_directory()` dans `lab5.c` pour afficher le premier fichier `.wav` du dossier `/music` :
 - Utilisez `pf_opendir()` pour ouvrir le dossier.
@@ -202,23 +202,61 @@ Implémentez `init_directory()` dans `lab5.c` pour afficher le premier fichier `
 
 ---
 
-### Tâche 4 : Parcours des fichiers
+### POINT DE CONTRÔLE (1pt)
 
-Dans `lab5.c`, gérez l’appui sur le bouton **PB2** :
-- Lors de l’appui, affichez le **fichier valide suivant** dans `/music` (en ignorant ceux commençant par `_`).
-- Si vous êtes sur le dernier fichier, revenez au **premier**.
-- `pf_readdir()` retourne un nom vide `""` à la fin du dossier.
-- Ajoutez un **délai (200–300ms)** pour éviter plusieurs changements de fichier pour un seul appui.
+> Après quelques secondes, l’écran LCD doit afficher : **"Mounted!"**
+
+Cela confirme que la carte SD a bien été initialisée et montée.
 
 ---
 
-### Tâche 5 : Lecture audio 🎵
+### Tâche 3 – Lecture de la température (2pts)
 
-Lorsque **PD6** est pressé, appelez `play()` pour jouer le fichier actuellement affiché :
-- Implémentez ce comportement dans la section `TODO5` de `lab5.c`.
-- La lecture peut être **interrompue** en pressant **PD6 + PB2** en même temps — ce comportement est déjà pris en charge dans le squelette.
+Configurez l’ADC et lisez la température depuis un capteur analogique (par exemple LM35).
+
+#### Étapes d’implémentation :
+- Créez et implémentez `adc_init()` et `adc_read()`
+- Configurez :
+  - Tension de référence : **AVcc**
+  - Prescaler ADC : **8**
+- Convertissez la valeur ADC en tension, puis en °C (ex : `temp = voltage * 100`)
+- Affichez la température sur l’écran **LCD**
+- Envoyez aussi la lecture via **USART** (série)
 
 ---
+
+### Tâche 4 – Enregistrement des températures sur carte SD (2pts)
+
+Implémentez `log_temperature()` dans `lab5.c` pour sauvegarder les températures dans un fichier **CSV**.
+
+#### Exigences :
+- Utilisez `SD_log_data()` pour écrire dans le fichier
+- Affichez la température actuelle sur le **LCD**
+- Envoyez la température via **USART**
+- Lorsqu’on appuie sur le bouton **PD6**, ajoutez une nouvelle ligne de log
+
+---
+
+### Tâche 5 – Navigation dans les enregistrements (2pts)
+
+Implémentez `init_log_display()` et `next_log_entry()` pour lire le fichier `log.csv` **ligne par ligne**.
+
+#### Fonctionnalités :
+- Affichez chaque ligne du CSV (entrée) sur le **LCD**
+- En appuyant sur le bouton **PB2**, passez à la **ligne suivante**
+- Une fois la fin atteinte, recommencez à partir du **début**
+
+---
+
+### POINT DE CONTRÔLE (1pt)
+
+> Vous devez pouvoir faire défiler tous les enregistrements de température à l’aide du bouton.
+
+Une fois terminé, votre enregistreur doit permettre :
+- Lecture temps réel du capteur
+- Enregistrement sur bouton-poussoir
+- Navigation complète dans les logs via l’écran LCD et un bouton
+
 
 ## 🔗 Liens utiles
 
