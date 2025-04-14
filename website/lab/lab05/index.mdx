@@ -1,6 +1,11 @@
 ---
 sidebar_position: 7
 ---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 # Lab 5: SPI (Serial Peripheral Interface)
 
@@ -144,6 +149,9 @@ These functions allow low-level file access from an embedded system — exactly 
 
 ## 6. Exercises
 
+<Tabs>
+  <TabItem value="lab_work" label="Lab Work">
+
 📥 **Download the starter code archive:**  
 [lab5_skel.zip](https://ocw.cs.pub.ro/courses/_media/pm/lab/lab5_skel.zip)
 
@@ -240,6 +248,111 @@ Once complete, your logger should support:
 - Data logging on button press
 - Full log navigation via the LCD and button
 
+
+</TabItem>
+<TabItem value="hw" label="Homework">
+:::note 
+From now on you will be working with [Wokwi](https://docs.wokwi.com/?utm_source=wokwi) because its easier to import libraries. 
+The **📥[homework skeleton](https://github.com/UPB-FILS-AM-FR/Homework_template_2025)** will be the same for all the labs.
+You don't need to modify the circuit for the homework. You will only change the .c and .h files. The connections to the peripherals wil be different from the ones in the lab development board. For the homework you will work with Arduino Uno (ATmega328P).
+
+![hw_schematic](./../images/hw_schematic.png)
+
+Make sure to read the [`README.md`](https://github.com/UPB-FILS-AM-FR/Homework_template_2025/blob/main/README.md) before solving the exercises.
+:::
+
+
+###  Task 1: SPI Control (2p)
+
+Implement the basic SPI communication functions in `spi.c`:
+- `SPI_init()`
+- `SPI_exchange()`
+
+:::tip
+
+- Configure **(SS)** as output and set it to **HIGH** to disable SPI interrupt triggering via slave select.
+- Follow examples from **page 217** of the datasheet.
+- Refer to section 5's wiring diagram to identify **MOSI** and **SCLK** pins.
+- Set SPI to **Master** mode with **SCLK = fosc/16** (slower frequency for SD card compatibility).
+- Remember to use register names with a `0` suffix: `SPCR0`, `SPDR0`, etc.
+- Use `SPDR0` to send data and receive the response in one function (full-duplex), replacing the need for `SPI_read()` and `SPI_write()`.
+
+:::
+---
+
+###  Task 2: SD Card Control  (2p)
+
+In `sd.c`, implement:
+- `SD_init()`
+- `SD_receive()`
+- `SD_transmit()`
+
+:::tip
+- **PA2** (SS for SD card) must be set as output. Leave the HIGH/LOW handling to the skeleton code.
+- Use `SPI_exchange()` for both transmitting and receiving.
+- In `SD_receive()`, send **0xFF** as a dummy byte to initiate a read (Master must always initiate).
+- ✅ **Checkpoint:** After flashing your code, the LCD should change from `Mounting...` to `Mounted!`. If not, hit the **RESET** button and debug if needed.
+:::
+
+---
+
+### CHECKPOINT (1p)
+
+> After a few seconds, the LCD should display: **"Mounted!"**
+
+This confirms that the SD card has been successfully initialized and mounted.
+
+---
+
+### Task 3 – Reading Temperature (2p)
+
+Set up the ADC and read temperature from an analog sensor (TEMP).
+
+#### Implementation steps:
+- Create and implement `adc_init()` and `adc_read()`
+- Configure:
+  - Reference Voltage: **AVcc**
+  - ADC Prescaler: **8**
+- Convert ADC value to voltage, then to °C (e.g., `temp = voltage * 100`)
+- Display the temperature on the **LCD**
+- Also send the temperature reading via **USART** (serial)
+
+---
+
+### Task 4 – Logging Temperature to SD Card (2p)
+
+Implement `log_temperature()` in `lab5.c` to save temperature readings to a **CSV file**.
+
+#### Requirements:
+- Use `SD_log_data()` to write data to the file
+- Show current temperature on the **LCD**
+- Send current temperature via **USART**
+- When button **PD6** is pressed, append a new log entry to the file
+
+---
+
+### Task 5 – Navigating Log Entries (2p)
+
+Implement `init_log_display()` and `next_log_entry()` to read the file `log.csv` **line by line**.
+
+#### Features:
+- Display each CSV line (entry) on the **LCD**
+- On **PB2** button press, move to the **next line**
+- When reaching the **end**, loop back to the **start**
+
+---
+
+### CHECKPOINT (1p)
+
+> You must be able to scroll through all temperature logs using the button.
+
+Once complete, your logger should support:
+- Real-time sensor readings
+- Data logging on button press
+- Full log navigation via the LCD and button
+
+</TabItem>
+</Tabs>
 
 ## 🔗 Useful Links
 

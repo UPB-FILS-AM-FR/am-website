@@ -1,6 +1,11 @@
 ---
 sidebar_position: 6
 ---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 # Lab 4: Analog to Digital Converter (ADC)
 
@@ -198,6 +203,9 @@ uint16_t result = ADC; // Combined 10-bit result
 
 ## 4. Exercises
 
+<Tabs>
+  <TabItem value="lab_work" label="Lab Work">
+
 The objective of these exercises is to use the **analog-to-digital converter (ADC)** integrated into the ATmega324P microcontroller to perform various readings (multiplexed buttons via voltage dividers, temperature sensor).
 
 Download the code skeleton: [lab_4_skel.zip](./resources/lab4_skel.zip)
@@ -249,6 +257,78 @@ Hints:
 - Optionally, instead of using auto-triggering, you can **manually call** `analogRead()` from the Timer1 interrupt handler.
 
 ---
+
+</TabItem>
+<TabItem value="hw" label="Homework">
+
+:::note 
+From now on you will be working with [Wokwi](https://docs.wokwi.com/?utm_source=wokwi) because its easier to import libraries. 
+The **📥[homework skeleton](https://github.com/UPB-FILS-AM-FR/Homework_template_2025)** will be the same for all the labs.
+You don't need to modify the circuit for the homework. You will only change the .c and .h files. The connections to the peripherals wil be different from the ones in the lab development board. For the homework you will work with Arduino Uno (ATmega328P).
+
+![hw_schematic](./../images/hw_schematic.png)
+
+Make sure to read the [`README.md`](https://github.com/UPB-FILS-AM-FR/Homework_template_2025/blob/main/README.md) before solving the exercises.
+:::
+
+
+The objective of these exercises is to use the **analog-to-digital converter (ADC)** integrated into the ATmega324P microcontroller to perform various readings (multiplexed buttons via voltage dividers, temperature sensor).
+
+**Clone code skeleton: [homework skeleton](https://github.com/UPB-FILS-AM-FR/Homework_template_2025)**
+
+---
+
+### **Task 0**
+
+Complete the provided code skeleton (`adc.c`) by implementing a function similar to `analogRead(uint8_t pin)`. This function should:
+
+- Perform a **single conversion** on the specified analog pin.
+- **Block** execution until the result is available.
+- Return the **converted digital value**.
+
+---
+
+### **Task 1**
+
+Using the `analogRead()` function, read values from the **temperature sensor** connected to pin **PC0**. 
+
+- Touch the sensor (carefully) with your finger and observe how the readings change.
+- Optional: print the value via serial output.
+
+---
+
+### **Task 2**
+
+The pin `PC1` is connected to a potentiometer. 
+
+Steps:
+1. Determine the **analog value ranges** returned when each button is pressed.
+2. Define appropriate threshold values using `#define` macros.
+3. Implement logic such that:
+   - **POTENTIOMETER_LEVEL1** → turn on **Red LED**
+   - **POTENTIOMETER_LEVEL2** → turn on **Green LED**
+   - **POTENTIOMETER_LEVEL3** → turn on **Blue LED**
+
+---
+
+### **Task 3**
+
+Configure the ADC to **automatically** start conversions on the **temperature sensor (PC0)** **every 1 second**, using **Timer1**.
+
+Hints:
+- Timer1 is already configured to trigger interrupts every second.
+- Check the datasheet for:
+  - **ADATE (Auto Trigger Enable)**
+  - **ADTS (Auto Trigger Source)** fields in `ADCSRA` and `ADCSRB`
+- Optionally, instead of using auto-triggering, you can **manually call** `analogRead()` from the Timer1 interrupt handler.
+
+---
+
+
+
+
+</TabItem>
+</Tabs>
 
 ## 5. Useful Links
 
