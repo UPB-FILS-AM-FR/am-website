@@ -1,6 +1,11 @@
 ---
 sidebar_position: 8
 ---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 # Lab 6: I2C (Inter-Integrated Circuit)
 
@@ -179,6 +184,9 @@ Register map and their respective addresses can be found in the [MPL3115A2 Datas
 
 ## 6. Exercises
 
+<Tabs>
+  <TabItem value="lab_work" label="Lab Work">
+
 Download the [code skeleton archive](https://ocw.cs.pub.ro/courses/_media/pm/lab/lab6/lab6-skel-2023-2024.zip) and follow the instructions marked with `TODO`.
 
 ---
@@ -272,6 +280,97 @@ twi_stop();
 ✅ After completing the tasks, you should be able to communicate with the MPL3115A2, detect its address, configure it, and read valid pressure and temperature values.
 
 ---
+
+</TabItem>
+<TabItem value="hw" label="Homework">
+
+:::note 
+From now on you will be working with [Wokwi](https://docs.wokwi.com/?utm_source=wokwi) because its easier to import libraries. 
+The **📥[homework skeleton](https://github.com/UPB-FILS-AM-FR/Homework_template_2025)** will be the same for all the labs.
+You don't need to modify the circuit for the homework. You will only change the .c and .h files. The connections to the peripherals wil be different from the ones in the lab development board. For the homework you will work with Arduino Uno (ATmega328P).
+
+![hw_schematic](./../images/hw_schematic.png)
+
+Make sure to read the [`README.md`](https://github.com/UPB-FILS-AM-FR/Homework_template_2025/blob/main/README.md) before solving the exercises.
+:::
+
+### **Task 0** – Basic I2C Initialization
+
+Complete the bodies of the functions `twi_init`, `twi_start`, and `twi_stop` in the `twi.c` file.
+
+> 💡 Constant definitions can be found in [avr-libc util/twi.h](https://www.nongnu.org/avr-libc/user-manual/group__util__twi.html)
+
+---
+
+### **Task 1** – Reading and Writing
+
+Implement the functions `twi_read_ack`, `twi_read_nack`, and `twi_write` in `twi.c`.
+
+> 💡 Tip: See Table `23-2`, page 268 of the [ATmega324P Datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf) for a full example.
+
+---
+
+### **Task 2** – Discover Devices on I2C Bus
+
+Implement `twi_discover` in `twi.c`. This function should send a read address (SLA_R) to all possible I2C addresses (0–127) and detect which devices respond with ACK.
+
+- Display connected device addresses via serial.
+- Make sure to call this function in `main()`.
+
+> 💡 Tip: Use the `TWSR` register to check if the slave acknowledged (ACK). See Table `23-4`, page 275 in the datasheet for status codes.
+
+**To send a read or write address:**
+
+```c
+// Read address
+(DEVICE_ADDRESS << 1) | 1
+
+// Write address
+DEVICE_ADDRESS << 1
+```
+
+📌 The sensor address is `0x60` → read = `0xC1`, write = `0xC0`.
+
+---
+
+### **Task 3** – MPU6050 accelerometer
+
+
+To get the data we want from the digital sensor, we need to access its internal registers. 
+The MPU-6500 has some rules when it comes to reading and writing to these registers, that must be extracted from the datasheets. 
+Every sensor has different registers, and different ways of interfacing them, so reading the [datasheet](https://invensense.tdk.com/products/motion-tracking/6-axis/mpu-6500/#documentation) is usually required, 
+especially when we don't have the leverage of using already existing libraries for these sensors.
+
+Get the acceleration and angular velocity readings from the sensor.
+- Configure the full scale as ±2g for the acceleration and ±1000°/s for the angular velocity 
+- Read the raw values for the X axis of the accelerometer and print them in a loop. 
+
+
+### Read Register Sequence
+
+Use the following sequence when reading from a register:
+
+```c
+twi_start();
+twi_write(DEVICE_ADDRESS << 1);        // SLA + W
+twi_write(REGISTER_ADDRESS);           // register to read
+twi_start();                           // repeated START
+twi_write((DEVICE_ADDRESS << 1) | 1);  // SLA + R
+
+uint8_t data = 0;
+twi_read_nack(&data);
+twi_stop();
+```
+
+---
+
+✅ After completing the tasks, you should be able to communicate with the MPL3115A2, detect its address, configure it, and read valid pressure and temperature values.
+
+---
+
+
+</TabItem>
+</Tabs>
 
 ### 🔗 Useful Links
 

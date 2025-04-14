@@ -164,6 +164,9 @@ Although we won’t use this in the lab, it’s useful to understand how **Phase
 
 ## 3. Exercises
 
+<Tabs>
+  <TabItem value="lab_work" label="Lab Work">
+
 The goal of these exercises is to control the color of an RGB LED using PWM. You can produce any color by adjusting the brightness of each diode (Red, Green, Blue) independently!
 
 The RGB LED pins are connected as follows:
@@ -245,6 +248,108 @@ Combine:
 - Sound playback (melody via speaker)
 
 — both running **simultaneously** and smoothly.
+
+</TabItem>
+<TabItem value="hw" label="Homework">
+
+:::note 
+From now on you will be working with [Wokwi](https://docs.wokwi.com/?utm_source=wokwi) because its easier to import libraries. 
+The **📥[homework skeleton](https://github.com/UPB-FILS-AM-FR/Homework_template_2025)** will be the same for all the labs.
+You don't need to modify the circuit for the homework. You will only change the .c and .h files. The connections to the peripherals wil be different from the ones in the lab development board. For the homework you will work with Arduino Uno (ATmega328P).
+
+![hw_schematic](./../images/hw_schematic.png)
+
+Make sure to read the [`README.md`](https://github.com/UPB-FILS-AM-FR/Homework_template_2025/blob/main/README.md) before solving the exercises.
+:::
+
+
+
+
+The goal of these exercises is to control the color of an RGB LED using PWM. You can produce any color by adjusting the brightness of each diode (Red, Green, Blue) independently!
+
+The RGB LED pins are connected as follows:
+- **Red**: pin `PD6`, function `OC0A` (linked to Timer1)
+- **Green**: pin `PD5`, function `OC0B` (linked to Timer0)
+- **Blue**: pin `PB3`, function `OC2B` (linked to Timer2)
+
+:::info Reminder
+
+The RGB LED is wired with **common anode** / "active-low" configuration — the LED turns ON when the pin is set to LOW, and OFF when set to HIGH.
+:::
+---
+
+### Task 0
+
+1. Clone the [homework skeleton](https://github.com/UPB-FILS-AM-FR/Homework_template_2025) and readme before starting the exercises. (When running the simulation, make sure to use the switches to use the RGB LED and not the LCD)
+
+---
+
+### Task 1
+
+1. Let’s make the **RED** LED behave similarly.
+   - Use Timer0 (`OC0A` on PD6) in **Fast PWM** mode.
+   - Be sure to check **Section 12.9** in the [ATmega324P Datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf) for proper register usage — Timer0's registers differ from Timer1's!
+   - Make the blue LED **pulse faster** than red, and in **parallel**.
+   - What do you notice?
+
+---
+
+### Task 2
+
+1. Time to turn on the **BLUE** LED!
+   - Challenge: `PD3` (`OC2B`) is used by Timer2, which is already used for `millis()` system ticks...
+   - Solution: We’ll generate PWM manually using **interrupts**:
+     - Timer2 counts from 0 to 188 and triggers an interrupt via `COMPA` (to increment `systicks`).
+     - Timer2’s second comparator `COMPB` triggers an interrupt at a value between 0–188.
+     - In `COMPA ISR`: turn ON blue LED → set GPIO LOW.
+     - In `COMPB ISR`: turn OFF blue LED → set GPIO HIGH.
+     - Duty cycle is given by `OCR2B`.
+
+:::warning
+Keep `OCR2A = 188` to retain proper `millis()` timing.
+:::
+---
+
+### Task 3
+
+1. Cycle through all colors using **HSV color space**:
+   - Convert HSV → RGB using provided `convert_HSV_to_RGB()` function.
+   - Let `Hue` animate over time, keep `Saturation = 1`, `Value = 1` (for full brightness).
+   - Use system ticks to animate the color smoothly, just like LED pulsing.
+   - Make sure to disable any conflicting code that modifies LED intensity.
+
+![HSV Color Wheel](./images/hue-wheel.png?direct&400)
+
+---
+
+### Task 4 (Bonus)
+
+1. Use the **speaker** connected to `PB1` (also `OC1A`) to **play a melody** from the `sound.c` module.
+   - `surprise_notes[]` contains frequencies.
+   - `durations[]` stores note durations.
+   - In `update_notes()`, reconfigure Timer1 each time a new note is played.
+     - Use **CTC mode** (`OCR1A` sets the TOP → controls frequency).
+     - Set `OCR1B = OCR1A / 2` for 50% duty cycle (square wave).
+     - Call `update_notes()` every **25ms** using `systicks`.
+     - Reset `TCNT1 = 0` after changing `OCR1A` to avoid timing delays.
+
+---
+
+### Bonus 2
+
+Combine:
+- RGB animation (HSV cycling) **and**
+- Sound playback (melody via speaker)
+
+— both running **simultaneously** and smoothly.
+
+
+
+
+</TabItem>
+</Tabs>
+
+
 
 
 ## 4. Useful Links
