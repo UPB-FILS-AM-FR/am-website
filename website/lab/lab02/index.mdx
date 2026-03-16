@@ -597,6 +597,12 @@ To print messages to serial, use these functions.
 
 void USART0_init(uint32_t baud)
 {
+    UCSR0B = 0; // Disable interrupts, TX, RX
+    UCSR0A = 0; // Clear flags
+    UCSR0C = 0; // Reset mode (async, 8N1)
+    UBRR0H = 0; // Clear baud rate high byte
+    UBRR0L = 0; // Clear baud rate low byte
+
     uint16_t ubrr = (uint16_t)(F_CPU / (16UL * baud) - 1UL);
 
     UBRR0H = (uint8_t)(ubrr >> 8);
