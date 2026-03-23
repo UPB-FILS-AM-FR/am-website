@@ -5,14 +5,14 @@ import styles from './styles.module.css';
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
+  // Svg: React.ComponentType<React.ComponentProps<'svg'>>;
   description: ReactNode;
 };
 
 const FeatureList: FeatureItem[] = [
   {
     title: 'Tinkercad',
-    Svg: require('@site/static/img/tinkercad.svg').default,
+    // Svg: require('@site/static/img/tinkercad.svg').default,
     description: (
       <>
         Design and simulate circuits with common microcontrollers.
@@ -21,7 +21,7 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: 'ATmega324P/328P',
-    Svg: require('@site/static/img/path11622.svg').default,
+    // Svg: require('@site/static/img/path11622.svg').default,
     description: (
       <>
         Commonly used microcontrollers (such as the Arduino Uno). 
@@ -31,7 +31,7 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: 'KiCad',
-    Svg: require('@site/static/img/KiCad.svg').default,
+    // Svg: require('@site/static/img/KiCad.svg').default,
     description: (
       <>
         Design boards ready for production and prototyping.
@@ -40,11 +40,11 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function Feature({title, description}: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
+        {/* <Svg className={styles.featureSvg} role="img" /> */}
       </div>
       <div className="text--center padding-horiz--md">
         <Heading as="h3">{title}</Heading>
