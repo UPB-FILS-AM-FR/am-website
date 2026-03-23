@@ -32,68 +32,31 @@ Another important characteristic is the **sampling rate**, which determines how 
 
 To reproduce a signal without loss, the sampling rate must be **at least twice** the highest frequency present in the signal. This applies to simple sine waves as well as complex signals like voice or music.
 
-- Human hearing ranges from 20Hz to 20kHz, but voice transmission typically falls between 20–4000Hz.
+- Human hearing ranges from 20Hz to 20kHz, but voice transmission typically falls between 20-4000Hz.
 - Telephone systems often sample at 8000Hz to ensure intelligible voice reproduction.
 - CDs use 44100Hz to cover the full range of audible frequencies with high fidelity.
 
-### ADC Types
 
-Depending on their internal operation, ADCs can be categorized as:
-
-- Flash ADC (Direct Conversion)
-- Successive Approximation ADC
-- Integrating ADC (single-slope, dual-slope)
-- Sigma-Delta ADC (1-bit or oversampling types)
-
----
-
-<details>
-<summary>Click to expand more details</summary>
 
 ### Resolution
 
 Resolution defines the number of discrete values an ADC can output. For example:
-- 8-bit resolution = 256 levels (values 0–255)
-- For a 0–5V range and 8-bit resolution: each level = 5V / 256 ≈ 0.0195V
+- 8-bit resolution = 256 levels (values 0-255)
+- For a 0-5V range and 8-bit resolution: each level = 5V / 256 ≈ 0.0195V
 
 ### Sampling Rate
 
 The sampling rate is the frequency at which the analog signal is sampled:
-- Must be ≥ 2× input signal frequency (Nyquist frequency)
+- Must be ≥ 2x input signal frequency (Nyquist frequency)
 - Undersampling causes **aliasing**, misinterpreting high frequencies as lower ones
 
 ![Aliasing Problem](./images/adc_2.png?600)
 
-### ADC Architectures
-
-#### Flash ADC
-
-- Fastest type, uses a bank of comparators operating in parallel
-- Converts almost instantaneously but requires lots of hardware
-
-![Flash ADC](./images/adc_3.png?300)
-
-#### Successive Approximation ADC (SAR)
-
-- Uses binary search to converge on input voltage
-- More compact and cheaper than Flash, but slower
-
-![SAR ADC](./images/adc_4.png?500)
-
-#### Sigma-Delta ADC
-
-- Offers high resolution and low noise
-- Suitable for applications where speed is less important
-- Uses sample-and-hold circuit to store analog input during conversion
-
-![Sigma-Delta ADC](./images/adc_5.png?500)
-
-</details>
 
 
 ## 2. The ADC Converter of the ATmega324P
 
-The analog-to-digital converter included in the ATmega324P microcontroller is a **successive approximation ADC**. It has up to **10-bit resolution** and can measure any voltage between 0–5V from eight multiplexed analog inputs (pins on port A). Additionally, it can amplify low amplitude signals with selectable gain levels of 0 dB (1x), 20 dB (10x), or 46 dB (200x).
+The analog-to-digital converter included in the ATmega324P microcontroller is a **successive approximation ADC**. It has up to **10-bit resolution** and can measure any voltage between 0-5V from eight multiplexed analog inputs (pins on port A). Additionally, it can amplify low amplitude signals with selectable gain levels of 0 dB (1x), 20 dB (10x), or 46 dB (200x).
 
 This converter is controlled using two status and control registers (`ADCSRA` and `ADCSRB`) and a multiplexer selection register (`ADMUX`). The first two control when a conversion is triggered, whether an interrupt should be generated at the end, etc. The multiplexer register selects the input channel and the reference voltage source. Since the processor's registers are 8-bit and the ADC outputs up to 10 bits, the ADC result is split into a **low** and **high** byte.
 
@@ -139,37 +102,37 @@ Prescaler values range from 2 to 128. A higher prescaler means a slower ADC cloc
 
 ### Registers
 
-#### `ADMUX` – ADC Multiplexer Selection Register
+#### `ADMUX` - ADC Multiplexer Selection Register
 
 ![ADMUX](./images/adc_6.png?500)
 
-- **Bits 7:6 – REFS1:0** → Reference voltage selection  
+- **Bits 7:6 - REFS1:0** → Reference voltage selection  
   ![REFS Bits](./images/adc_7.png?500)
-- **Bit 5 – ADLAR** → Left/right result alignment
-- **Bits 4:0 – MUX4:0** → Analog input channel  
+- **Bit 5 - ADLAR** → Left/right result alignment
+- **Bits 4:0 - MUX4:0** → Analog input channel  
   ![MUX Bits](./images/adc_8.png?500)
 
 ---
 
-#### `ADCSRA` – ADC Control and Status Register A
+#### `ADCSRA` - ADC Control and Status Register A
 
 ![ADCSRA](./images/adcsra.png?600)
 
-- **Bit 7 – ADEN**: Enable ADC  
-- **Bit 6 – ADSC**: Start conversion  
-- **Bit 5 – ADATE**: Enable auto trigger  
-- **Bit 4 – ADIF**: Conversion complete flag  
-- **Bit 3 – ADIE**: Enable ADC interrupt  
-- **Bits 2:0 – ADPS2:0**: Set prescaler  
+- **Bit 7 - ADEN**: Enable ADC  
+- **Bit 6 - ADSC**: Start conversion  
+- **Bit 5 - ADATE**: Enable auto trigger  
+- **Bit 4 - ADIF**: Conversion complete flag  
+- **Bit 3 - ADIE**: Enable ADC interrupt  
+- **Bits 2:0 - ADPS2:0**: Set prescaler  
   ![ADPS Bits](./images/adc_10.png?500)
 
 ---
 
-#### `ADCSRB` – ADC Control and Status Register B
+#### `ADCSRB` - ADC Control and Status Register B
 
 ![ADCSRB](./images/adcsrb.png?600)
 
-- **Bits 2:0 – ADTS2:0**: Auto trigger source  
+- **Bits 2:0 - ADTS2:0**: Auto trigger source  
   ![ADTS Bits](./images/adc_13.png?500)
 
 ---
@@ -231,32 +194,6 @@ Using the `analogRead()` function, read values from the **temperature sensor** c
 
 ---
 
-### **Task 2**
-
-Buttons 1–6 are **multiplexed** on a single analog pin **PA5**, using **voltage dividers**. Refer to the hardware schematic for a visual explanation.
-
-Steps:
-1. Determine the **analog value ranges** returned when each button is pressed.
-2. Define appropriate threshold values using `#define` macros.
-3. Implement logic such that:
-   - **BTN2** → turn on **Red LED**
-   - **BTN3** → turn on **Green LED**
-   - **BTN5** → turn on **Blue LED**
-
----
-
-### **Task 3**
-
-Configure the ADC to **automatically** start conversions on the **temperature sensor (PA0)** **every 1 second**, using **Timer1**.
-
-Hints:
-- Timer1 is already configured to trigger interrupts every second.
-- Check the datasheet for:
-  - **ADATE (Auto Trigger Enable)**
-  - **ADTS (Auto Trigger Source)** fields in `ADCSRA` and `ADCSRB`
-- Optionally, instead of using auto-triggering, you can **manually call** `analogRead()` from the Timer1 interrupt handler.
-
----
 
 </TabItem>
 <TabItem value="hw" label="Homework">
@@ -323,9 +260,6 @@ Hints:
 - Optionally, instead of using auto-triggering, you can **manually call** `analogRead()` from the Timer1 interrupt handler.
 
 ---
-
-
-
 
 </TabItem>
 </Tabs>
