@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex';
 const config: Config = {
   title: 'Microprocessor Architecture',
   tagline: '🤖✨',
-  favicon: 'img/sigla_am.ico',
+  favicon: 'img/sigla.png',
 
   // Set the production url of your site here
   url: 'https://upb-fils-am-fr.github.io/',
@@ -97,7 +97,7 @@ const config: Config = {
       title: 'Microprocessor Architecture',
       logo: {
         alt: 'Microprocessor Architecture',
-        src: 'img/sigla_am.svg',
+        src: 'img/sigla.png',
       },
       items: [
         {to: '/lab',label: 'Lab', position: 'left'},

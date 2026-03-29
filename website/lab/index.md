@@ -4,31 +4,6 @@ sidebar_position: 1
 
 # General Lab Rules
 
-
-## Schedule
-
-[Student repartition](https://docs.google.com/spreadsheets/d/1LT1U77E7dCzVLssV3KEsYylSqjGEDuacKAaE5_69UNI/edit?usp=sharing) 
-
-| Groupe | Hours | Sale | Moodle Teams Alias |
-| ------ | ------- | ----- |------------------ | 
-| 1220FA (1) | Monday 12-14 : even | ED218 | 12-FILS-L-CTI(F)-IIf-A2-S2-PM-F |
-| 1220FA (2) | Monday 12-14 : odd | ED218 | 12-FILS-L-CTI(F)-IIf-A2-S2-PM-F |
-| 1220FB  | Wednesday 12-14 : even | ED218 | 12-FILS-L-CTI(F)-IIDI(F)-A2-S2-PM-F |
-| 1221F (1) | Monday 12-14 : odd | ED218 | 12-FILS-L-IETTI(F)-AeF-A2-S2-AMfr-F |
-| 1221F (2) | Monday 12-14 : even | ED218 | 12-FILS-L-IETTI(F)-AeF-A2-S2-AMfr-F |
-
-[Teams Common Group - 12-FILS-L-A2-S2-CM-CTI(F)_IETTI(F)](https://teams.microsoft.com/l/channel/19%3Ae4hGjDKs-EhSr2a__dGX3WWqS0UPuyWZWOQZMaOs38U1%40thread.tacv2/General?groupId=81361826-0003-4f22-9b86-6a341a893f92&tenantId=2d8cc8ba-8dda-4334-9e5c-fac2092e9bac)
-
-
-
-## Grading throughout the semester
-
-*   Laboratory score - 1 point (evaluation of laboratory work)
-    
-*   Test on the laboratory material - 1 point (colloquium at the end of the laboratories - on Moodle)
-    
-*   Project - 3 points
-  
 **Exam entry requirements:**
 
 *   4 laboratory attendances are mandatory to enter the exam.
@@ -39,20 +14,15 @@ sidebar_position: 1
 # Laboratory planning
 
 | \# Week | Range | Activity | Details |
-| --- | --- | --- | ---| 
-| 2   | March 03-07 | Lab 0: ATmega324. GPIO | Common physical Lab | 
-| 3   | March 10-14 | Lab 1: USART. Digital debugging | HW even , Lab Odd |
-| 4   | March 17-21 | Lab 2: Interrupts and Timers | Lab even, HW Odd |
-| 5   | March 24-27 | Lab 3: PWM Timers, External Interrupts | HW even , Lab Odd |
-| 6   | 31-04 April| Lab 4: Analog-to-Digital Converter (ADC) | Lab even, HW Odd |
-| 7   | April 07-11 | Lab 5: Serial Peripheral Interface (SPI), Establishing a project topic | HW even , Lab Odd |
-| 8   | April 14-18 | Lab 6: I2C Protocol, Establishing a project topic | Lab even, HW Odd |
-| 9   | April 21-25 | Project: Final confirmation of project topic |
-| 10  | 28-04 May | Project Milestone - Documentation, Laboratory Colloquium (given during class) |
-| 11  | May 05-09 | Lab help soldering | Common Lab | 
-| 12  | May 12-16 | Progress - hardware + software |
-| 13  | May 19-23 | Milestone - hardware + software | Common Lab | 
-| 14  | May 26-30 | Monday, May 26 - EC hall - PM Fair (final presentation for ALL projects) |
+| --- | --- | ---| 
+
+| 8   | Lab 6: I2C Protocol, Establishing a project topic | Lab even, HW Odd |
+| 9   | Project: Final confirmation of project topic |
+| 10  | Project Milestone - Documentation, Laboratory Colloquium (given during class) |
+| 11  | Lab help soldering | Common Lab | 
+| 12  | Progress - hardware + software |
+| 13  | Milestone - hardware + software | Common Lab | 
+| 14  | Monday, May 26 - EC hall - PM Fair (final presentation for ALL projects) |
 
 
 
