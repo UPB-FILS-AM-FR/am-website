@@ -1,0 +1,345 @@
+---
+sidebar_position: 5
+---
+import TwoColumn from '@site/src/components/TwoColumn';
+import CodeSnippet from '@site/src/components/CodeSnippet.tsx';
+import * as snippets from '@site/snippets/code-snippets01.mdx';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+
+# TP 3 : PWM & ADC
+
+**Chapitres utiles du [datasheet ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)**
+
+* 1. Configuration des broches - section 1.1, page 15  
+* 16. Timer/Compteur0 8 bits avec PWM - section 16.9, page 140  
+* 17. Timer/Compteur1 16 bits avec PWM - section 17.14, page 173  
+* 19. Timer/Compteur2 8 bits avec PWM et fonctionnement asynchrone - section 19.11, page 202  
+
+---
+
+## 1. Modulation de largeur d’impulsion (PWM)
+
+La **PWM** (Pulse Width Modulation) est une technique utilisée pour contrôler la tension appliquée à un dispositif électronique en le commutant rapidement entre les états ON et OFF.
+
+Cette commutation rapide produit une tension moyenne déterminée par le temps pendant lequel le signal reste ON par rapport à la durée totale du cycle — ce rapport est appelé le **rapport cyclique** (*duty cycle*).
+
+PWM permet un **contrôle numérique** de **signaux analogiques**, par exemple :
+- Diminuer la luminosité d’une LED
+- Modifier la couleur des LED RGB
+- Ajuster la fréquence d’un buzzer
+- Régler la vitesse d’un moteur
+
+---
+
+### 1.1. Principe de fonctionnement
+
+Le rapport cyclique est exprimé en pourcentage du temps ON par rapport à la durée totale du cycle :
+
+$$
+D[\%] = \frac{t_{on}}{t_{on} + t_{off}} \cdot 100 = \frac{largeur\_impulsion}{période} \cdot 100
+$$
+
+La **tension moyenne** reçue par un dispositif est :
+
+$$
+\bar{V} = D \cdot V_{cc}
+$$
+
+Les signaux PWM sont généralement générés par des circuits numériques et des microcontrôleurs. L’ATmega324 utilise un **compteur** qui se réinitialise périodiquement et compare sa valeur à une référence (`OCRn`). Lorsque le compteur dépasse cette valeur, la sortie PWM change d’état.
+
+<details>
+<summary>🛠️ PWM via logiciel ?</summary>
+
+La PWM peut aussi être implémentée en logiciel via :
+- Bit-banging
+- Timers avec ISR
+
+Mais pour des PWM haute fréquence (par exemple en kHz pour les moteurs), la PWM matérielle est bien plus efficace car elle évite une surcharge CPU due aux interruptions fréquentes.
+
+</details>
+
+---
+
+## 2. PWM sur les microcontrôleurs AVR
+
+Dans le TP précédent, nous avons vu que l’ATmega324 possède trois timers :
+- `Timer0` (8 bits)
+- `Timer1` (16 bits)
+- `Timer2` (8 bits)
+
+Chaque timer peut être configuré via les registres `TCCRnA` et `TCCRnB`, en utilisant les bits `WGMnx` pour choisir le mode :
+
+- **Normal**
+- **CTC (Clear Timer on Compare Match)**
+- **Fast PWM** (utilisé aujourd’hui !)
+- **Phase Correct PWM**, etc.
+
+Chaque timer possède deux canaux de comparaison : `OCnA` et `OCnB`, reliés à des broches physiques spécifiques.
+
+Aujourd’hui, nous allons nous concentrer sur le mode **Fast PWM**, adapté à des applications courantes comme le contrôle de luminosité ou la vitesse d’un moteur.
+
+---
+
+### Fast PWM
+
+En mode **Fast PWM**, le timer compte uniquement sur le **front montant** de l’horloge. Les modifications du rapport cyclique sont immédiates, mais le signal n’est pas centré — des décalages peuvent apparaître.
+
+Modes disponibles pour **Timer1** :
+- Fast PWM 8 bits : TOP = 0x00FF  
+- Fast PWM 9 bits : TOP = 0x01FF  
+- Fast PWM 10 bits : TOP = 0x03FF  
+- Fast PWM avec TOP dans `ICR`  
+- Fast PWM avec TOP dans `OCRnA`
+
+:::note 💡
+
+Dans ce TP, nous utiliserons uniquement le mode **Fast PWM 8 bits**.
+
+:::
+
+---
+
+Supposons que Timer1 soit configuré en Fast PWM :
+
+- Avec le mode `10` pour `COM1A1:COM1A0`, la sortie `OC1A` reste HIGH jusqu’au seuil, puis LOW.
+- Pour un rapport cyclique de `x%` :
+  `OCR1A = x * TOP / 100`
+
+---
+
+#### Exemple : Timer1 en Fast PWM 8 bits
+
+```c
+/* OC1A est PD5, doit être configuré en sortie */
+DDRB |= (1 << PD5);
+
+/* Mode Fast PWM 8 bits */
+TCCR1A = (1 << WGM10);
+TCCR1B = (1 << WGM12);
+
+/* Mode non-inversé */
+TCCR1A |= (1 << COM1A1);
+
+/* Prescaler 1024 */
+TCCR1B |= (1 << CS12) | (1 << CS10);
+
+/* Rapport cyclique 50% */
+OCR1A = 127;
+```
+
+---
+
+# Convertisseur Analogique-Numérique (ADC)
+
+Ce TP vise à vous familiariser avec le convertisseur ADC intégré dans l’ATmega324P.
+
+## 1. Mesure de signaux analogiques
+
+Pour mesurer des signaux analogiques dans un système numérique, il faut les convertir en valeurs numériques discrètes.
+
+Un **ADC** est un circuit qui convertit une tension analogique en valeur numérique.
+
+Une caractéristique clé est la **résolution**, exprimée en bits, qui indique le nombre de valeurs possibles (2^N).
+
+Exemple :
+
+* ADC 10 bits → 1024 valeurs
+* Plage 0–5V → résolution ≈ 4.8 mV
+
+---
+
+### Théorème de Nyquist
+
+Pour reproduire un signal sans perte :
+➡️ fréquence d’échantillonnage ≥ 2 × fréquence maximale
+
+Exemples :
+
+* Voix : 20–4000 Hz
+* Téléphone : 8000 Hz
+* CD audio : 44100 Hz
+
+---
+
+### Résolution
+
+* 8 bits → 256 niveaux
+* 0–5V → ≈ 0.0195 V par niveau
+
+---
+
+### Fréquence d’échantillonnage
+
+* Doit respecter Nyquist
+* Sinon → **aliasing**
+
+---
+
+## 2. ADC du ATmega324P
+
+* ADC à approximation successive
+* Résolution jusqu’à **10 bits**
+* 8 entrées analogiques (port A)
+* Gain configurable : 1x, 10x, 200x
+
+Registres :
+
+* `ADCSRA`, `ADCSRB` (contrôle)
+* `ADMUX` (sélection entrée + référence)
+
+Résultat sur 10 bits → stocké en 2 registres (low + high)
+
+**Formules :**
+
+```
+ADC = V_in * 1024 / V_ref  
+V_in = ADC * V_ref / 1024
+```
+
+---
+
+### Tension de référence
+
+* AVCC
+* Interne (1.1V / 2.56V)
+* Externe (AREF)
+
+---
+
+### Prescaler
+
+```
+F_ADC = F_CPU / PRESCALER
+```
+
+* Valeurs : 2 → 128
+* Plus grand = plus précis
+
+---
+
+### Modes de fonctionnement
+
+* Conversion simple
+* Mode continu
+* Déclenchement externe
+* Mode comparateur
+* Mode timer
+
+---
+
+### Exemple
+
+```c
+ADMUX = 0;
+ADMUX |= (1 << MUX0);
+ADMUX |= (1 << REFS0);
+
+ADCSRA = 0;
+ADCSRA |= (7 << ADPS0);
+ADCSRA |= (1 << ADEN);
+```
+
+Lecture :
+
+```c
+ADCSRA |= (1 << ADSC);
+while (ADCSRA & (1 << ADSC));
+
+uint16_t result = ADC;
+```
+
+---
+
+## 3. Exercices
+
+<Tabs>
+  <TabItem value="lab_work" label="Travail en laboratoire">
+
+Objectif : contrôler une LED RGB via PWM.
+
+Connexions :
+
+* Rouge : `PD5`
+* Vert : `PD7`
+* Bleu : `PB3`
+
+:::info Rappel
+LED en **anode commune** (actif à l’état bas)
+:::
+
+---
+
+### Tâche 1
+
+* Exécuter le projet
+* Observer le comportement
+
+---
+
+### Tâche 2
+
+Allumer la LED verte via interruptions.
+
+---
+
+### Tâche 3
+
+Implémenter `analogRead()` :
+
+* Conversion simple
+* Bloquante
+* Retour valeur
+
+---
+
+### Tâche 4
+
+Lire capteur température (PA0)
+
+---
+
+### Tâche 5 (Bonus)
+
+Jouer une mélodie avec Timer1
+
+</TabItem>
+
+<TabItem value="hw" label="Devoir">
+
+Utiliser Wokwi + Arduino Uno.
+
+---
+
+### Tâche 1
+
+Allumer LED bleue avec interruptions
+
+---
+
+### Tâche 3
+
+Parcourir les couleurs via HSV
+
+---
+
+### Tâche ADC
+
+Implémenter analogRead + lire capteur + potentiomètre + trigger auto
+
+</TabItem>
+</Tabs>
+
+---
+
+## 4. Liens utiles
+
+* [PWM Tutorial](http://www.afrotechmods.com/groovy/PWM_tutorial/PWM_tutorial.htm)
+* [AVR PWM Guide](http://www.avrfreaks.net/index.php?name=PNphpBB2&file=printview&t=68302)
+* [Arduino PWM Secrets](https://docs.arduino.cc/tutorials/generic/secrets-of-arduino-pwm)
+* [Datasheet ATmega324P](https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42743-ATmega324P_Datasheet.pdf)
+
+```
+
+
