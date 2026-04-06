@@ -11,20 +11,6 @@ sidebar_position: 1
 *   minimum 2.5 points out of 5 for entrance to the exam
     
 
-# Laboratory planning
-
-| \# Week | Range | Activity | Details |
-| --- | --- | ---| 
-
-| 8   | Lab 6: I2C Protocol, Establishing a project topic | Lab even, HW Odd |
-| 9   | Project: Final confirmation of project topic |
-| 10  | Project Milestone - Documentation, Laboratory Colloquium (given during class) |
-| 11  | Lab help soldering | Common Lab | 
-| 12  | Progress - hardware + software |
-| 13  | Milestone - hardware + software | Common Lab | 
-| 14  | Monday, May 26 - EC hall - PM Fair (final presentation for ALL projects) |
-
-
 
 ## Laboratory Rules
 

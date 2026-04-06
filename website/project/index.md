@@ -6,7 +6,7 @@ sidebar_position: 1
 
 ## Github Classroom Project Assignment
 
-[Invite Link](https://classroom.github.com/a/wDe7J7lK)
+[Invite Link](https://classroom.github.com/a/c2P-mggz)
 Choose your username from the list.
 
 ## Spreadsheet for project idea
@@ -42,12 +42,6 @@ The score associated with the project is calculated according to the table below
 | PM Fair | Presentation and documentation | 1   | 1   | 1   | participation in PM Fair | week 14 (May 29) |
 | Bonus | Top 15 | 0.3 | 0.3 | 0.3 | The first 15 projects\* in the 3 series receive a bonus |     |
 | Top 5 | 0.3 | 0.3 | 0.3 | The first 5 projects\* in the 3 series receive an additional bonus |     |
-
-
-(\*) Winning projects (there will be prizes) will be chosen by the PM team based on merit
-
-Projects will be classified from the beginning, in consultation with the project assistant, into one of the categories: hardware-heavy, software-heavy, balanced.
-
 
 
 The choice of project topic is made through discussions with the project assistant, who **must give his/her consent for the topic you have chosen** . Following the discussions, the assistant will approve your topic.
