@@ -5,8 +5,8 @@ sidebar_position: 1
 
 ## Github Classroom Project Assignment
 
-[Invite Link](https://classroom.github.com/a/wDe7J7lK)
-Choose your username from the list.
+[Invite Link](https://classroom.github.com/a/c2P-mggz)
+Choisisez votre nome dans liste.
 
 ## Spreadsheet avec l'idée de projet
 [Link](https://docs.google.com/spreadsheets/d/1JU4cNTG8_rNVFsv24GdaxWRpsdvtV5wiMpHFUeI6jws/edit?usp=sharing)
@@ -41,12 +41,6 @@ Le score associé au projet est calculé selon le tableau ci-dessous.
 | Foire du PM | Présentation et documentation | 1   | 1   | 1   | participation à la foire PM | semaine 14 (29 mai) |
 | Prime | Top 15 | 0,3 | 0,3 | 0,3 | Les 15 premiers projets\* des 3 séries reçoivent un bonus |     |
 | Top 5 | 0,3 | 0,3 | 0,3 | Les 5 premiers projets\* des 3 séries reçoivent un bonus supplémentaire |     |
-
-
-(\*) Les projets gagnants (il y aura des prix) seront choisis par l'équipe PM en fonction du mérite 
-
-Les projets seront classés dès le début, en concertation avec l'assistant de projet, dans l'une des catégories suivantes : lourd en matériel, lourd en logiciel, équilibré.
-
 
 
 Le choix du thème du projet se fait en échange avec l'assistant de projet, qui **doit donner son accord pour le thème que vous avez choisi** . Suite aux discussions, l'assistant validera votre sujet.
