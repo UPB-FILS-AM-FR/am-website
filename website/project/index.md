@@ -12,6 +12,8 @@ Choose your username from the list.
 ## Spreadsheet for project idea
 [Link](https://docs.google.com/spreadsheets/d/1JU4cNTG8_rNVFsv24GdaxWRpsdvtV5wiMpHFUeI6jws/edit?usp=sharing)
 
+<iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSsvI4T6JALAxelD3cEdURZVmC1Q2196F1NGFsM7rsvakcxGJ1KWXYJGkMFva5_xzM7M-JDprIakVxi/pubhtml?gid=589067078&amp;single=true&amp;widget=true&amp;headers=false"  width="100%" height="400"></iframe>
+
 ## Grading throughout the semester
 
 *   Laboratory score - 1 point (evaluation of laboratory work)

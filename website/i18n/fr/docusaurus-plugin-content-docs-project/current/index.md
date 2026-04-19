@@ -11,6 +11,8 @@ Choisisez votre nome dans liste.
 ## Spreadsheet avec l'idée de projet
 [Link](https://docs.google.com/spreadsheets/d/1JU4cNTG8_rNVFsv24GdaxWRpsdvtV5wiMpHFUeI6jws/edit?usp=sharing)
 
+<iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSsvI4T6JALAxelD3cEdURZVmC1Q2196F1NGFsM7rsvakcxGJ1KWXYJGkMFva5_xzM7M-JDprIakVxi/pubhtml?gid=589067078&amp;single=true&amp;widget=true&amp;headers=false" width="100%" height="400"></iframe>
+
 ## Notation tout au long du semestre
 
 *   Note de laboratoire - 1 point (évaluation du travail de laboratoire)
